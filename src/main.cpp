@@ -15,7 +15,7 @@ int main()
     MatrixXd m(6,3);
     m << p,q,r;
 
-    double w = Wasserstein::W2(p,q);
+    double w = OTL::W2(p,q);
 
     std::cout << w << std::endl;
     

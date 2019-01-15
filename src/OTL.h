@@ -3,9 +3,9 @@
 
 using namespace Eigen;
 
-class Wasserstein {
+class OTL {
     public:
-        Wasserstein();
+        OTL();
         static double W2(VectorXd, VectorXd);
     private:
         static VectorXd Gauss_filter(VectorXd);
