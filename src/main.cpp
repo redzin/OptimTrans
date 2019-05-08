@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
         while (!main_disp.is_closed()) {
             main_disp.wait();
         }
+    
     } else if (std::string(argv[1]) == "blobs") {
         CImg<double>    image_01("images/one-blob.png"),
                         image_02("images/one-blob-moved.png"),
@@ -77,14 +78,11 @@ int main(int argc, char *argv[])
         image_01 = Utils::makeDistribution(image_01);
         image_02 = Utils::makeDistribution(image_02);
         
-        int combined_width = image_01.width() + image_02.width();
-        int combined_height = max(image_01.height(), image_02.height());
-        CImg<double> image_combiner(combined_width, combined_height, 1, 3, 0);
-        image_combiner.draw_image(0, 0, image_02);
-        image_combiner.draw_image(image_02.width(), 0, image_01);
         double d2_2 = OTL::D2(image_01, image_02);
         double w2_2 = OTL::W2_Sinkhorn(image_01, image_02);
         cout << "1 and 2: W2 = " << w2_2 << ", D2 = " << d2_2 << endl;
+        
+        CImg<double> image_combiner = image_01.get_append(image_02  , 'x');
         char title[200];
         sprintf(title, "Smile");
         //sprintf(title, "W2 = %5.4f, D2 = %5.4f", w2, d2);
@@ -92,18 +90,16 @@ int main(int argc, char *argv[])
         while (!main_disp.is_closed()) {
             main_disp.wait();
         }
-    
-        
 
     } else {
-        CImg<double>    p(6, 1, 1, 1, 0.1, 0.5, 0.1, 0.1, 0.1, 0.1),
-                        q(6, 1, 1, 1, 0.1, 0.1, 0.1, 0.5, 0.1, 0.1),
-                        r(6, 1, 1, 1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5);
-        
+        /*
+        CImg<double> p(6, 1, 1, 1, 0.1, 0.5, 0.1, 0.1, 0.1, 0.1),
+                     q(6, 1, 1, 1, 0.1, 0.1, 0.1, 0.5, 0.1, 0.1),
+                     r(6, 1, 1, 1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5);
         printf("D2(p,p) = %5.2f, W2(p,p) = %5.2f\n", OTL::D2(p,p), OTL::W2_Sinkhorn(p,p));
         printf("D2(p,q) = %5.2f, W2(p,q) = %5.2f\n", OTL::D2(p,q), OTL::W2_Sinkhorn(p,q));
         printf("D2(p,r) = %5.2f, W2(p,r) = %5.2f\n", OTL::D2(p,r), OTL::W2_Sinkhorn(p,r));
-        
+        */
 
         // Test of the Gaussian
         // printf("------------------\n");

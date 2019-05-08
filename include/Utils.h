@@ -25,9 +25,9 @@ class Utils{
             return x / x.sum();
         }
 
-        static CImgList<double> boxes(int width, int height)
+        /*static CImgList<double> boxes(int width, int height)
         {
-            CImgList<double> out_list();
+            CImgList<double> out_list;
 
             int w2 = width/2;
             int h2 = height/2;
@@ -38,5 +38,6 @@ class Utils{
             }
 
             return out_list;
-        }
+        }*/
+        
 };
