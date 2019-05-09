@@ -1,0 +1,3 @@
+/home/jessica/MScProject/OptimTrans/build/CMakeFiles/rebuild_cache.dir
+/home/jessica/MScProject/OptimTrans/build/CMakeFiles/main.o.dir
+/home/jessica/MScProject/OptimTrans/build/CMakeFiles/edit_cache.dir
