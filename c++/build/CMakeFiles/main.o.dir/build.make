@@ -43,10 +43,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/jessica/MScProject/OptimTrans
+CMAKE_SOURCE_DIR = /home/jessica/MScProject/OptimTrans/c++
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/jessica/MScProject/OptimTrans/build
+CMAKE_BINARY_DIR = /home/jessica/MScProject/OptimTrans/c++/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/main.o.dir/depend.make
@@ -59,29 +59,29 @@ include CMakeFiles/main.o.dir/flags.make
 
 CMakeFiles/main.o.dir/src/OTL.cpp.o: CMakeFiles/main.o.dir/flags.make
 CMakeFiles/main.o.dir/src/OTL.cpp.o: ../src/OTL.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/jessica/MScProject/OptimTrans/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/main.o.dir/src/OTL.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.o.dir/src/OTL.cpp.o -c /home/jessica/MScProject/OptimTrans/src/OTL.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/main.o.dir/src/OTL.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.o.dir/src/OTL.cpp.o -c /home/jessica/MScProject/OptimTrans/c++/src/OTL.cpp
 
 CMakeFiles/main.o.dir/src/OTL.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/main.o.dir/src/OTL.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jessica/MScProject/OptimTrans/src/OTL.cpp > CMakeFiles/main.o.dir/src/OTL.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jessica/MScProject/OptimTrans/c++/src/OTL.cpp > CMakeFiles/main.o.dir/src/OTL.cpp.i
 
 CMakeFiles/main.o.dir/src/OTL.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main.o.dir/src/OTL.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jessica/MScProject/OptimTrans/src/OTL.cpp -o CMakeFiles/main.o.dir/src/OTL.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jessica/MScProject/OptimTrans/c++/src/OTL.cpp -o CMakeFiles/main.o.dir/src/OTL.cpp.s
 
 CMakeFiles/main.o.dir/src/main.cpp.o: CMakeFiles/main.o.dir/flags.make
 CMakeFiles/main.o.dir/src/main.cpp.o: ../src/main.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/jessica/MScProject/OptimTrans/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/main.o.dir/src/main.cpp.o"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.o.dir/src/main.cpp.o -c /home/jessica/MScProject/OptimTrans/src/main.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/main.o.dir/src/main.cpp.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main.o.dir/src/main.cpp.o -c /home/jessica/MScProject/OptimTrans/c++/src/main.cpp
 
 CMakeFiles/main.o.dir/src/main.cpp.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/main.o.dir/src/main.cpp.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jessica/MScProject/OptimTrans/src/main.cpp > CMakeFiles/main.o.dir/src/main.cpp.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/jessica/MScProject/OptimTrans/c++/src/main.cpp > CMakeFiles/main.o.dir/src/main.cpp.i
 
 CMakeFiles/main.o.dir/src/main.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main.o.dir/src/main.cpp.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jessica/MScProject/OptimTrans/src/main.cpp -o CMakeFiles/main.o.dir/src/main.cpp.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/jessica/MScProject/OptimTrans/c++/src/main.cpp -o CMakeFiles/main.o.dir/src/main.cpp.s
 
 # Object files for target main.o
 main_o_OBJECTS = \
@@ -114,7 +114,7 @@ main_o_EXTERNAL_OBJECTS =
 ../main.o: /usr/lib/x86_64-linux-gnu/liblapack.so
 ../main.o: /usr/lib/x86_64-linux-gnu/libblas.so
 ../main.o: CMakeFiles/main.o.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/jessica/MScProject/OptimTrans/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable ../main.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Linking CXX executable ../main.o"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/main.o.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -127,6 +127,6 @@ CMakeFiles/main.o.dir/clean:
 .PHONY : CMakeFiles/main.o.dir/clean
 
 CMakeFiles/main.o.dir/depend:
-	cd /home/jessica/MScProject/OptimTrans/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jessica/MScProject/OptimTrans /home/jessica/MScProject/OptimTrans /home/jessica/MScProject/OptimTrans/build /home/jessica/MScProject/OptimTrans/build /home/jessica/MScProject/OptimTrans/build/CMakeFiles/main.o.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/jessica/MScProject/OptimTrans/c++/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/jessica/MScProject/OptimTrans/c++ /home/jessica/MScProject/OptimTrans/c++ /home/jessica/MScProject/OptimTrans/c++/build /home/jessica/MScProject/OptimTrans/c++/build /home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles/main.o.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/main.o.dir/depend
 

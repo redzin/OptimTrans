@@ -126,27 +126,15 @@ CImg.h
 cassert
 -
 
-/home/jessica/MScProject/OptimTrans/src/OTL.cpp
-OTL.h
-/home/jessica/MScProject/OptimTrans/src/OTL.h
-CImg.h
-/home/jessica/MScProject/OptimTrans/src/CImg.h
-Utils.h
-/home/jessica/MScProject/OptimTrans/src/Utils.h
-iostream
--
-cassert
--
-
-/home/jessica/MScProject/OptimTrans/src/main.cpp
+/home/jessica/MScProject/OptimTrans/c++/src/main.cpp
 iostream
 -
 CImg.h
-/home/jessica/MScProject/OptimTrans/src/CImg.h
+/home/jessica/MScProject/OptimTrans/c++/src/CImg.h
 OTL.h
-/home/jessica/MScProject/OptimTrans/src/OTL.h
+/home/jessica/MScProject/OptimTrans/c++/src/OTL.h
 Utils.h
-/home/jessica/MScProject/OptimTrans/src/Utils.h
+/home/jessica/MScProject/OptimTrans/c++/src/Utils.h
 cassert
 -
 

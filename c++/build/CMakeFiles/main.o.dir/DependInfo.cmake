@@ -4,8 +4,8 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/jessica/MScProject/OptimTrans/src/OTL.cpp" "/home/jessica/MScProject/OptimTrans/build/CMakeFiles/main.o.dir/src/OTL.cpp.o"
-  "/home/jessica/MScProject/OptimTrans/src/main.cpp" "/home/jessica/MScProject/OptimTrans/build/CMakeFiles/main.o.dir/src/main.cpp.o"
+  "/home/jessica/MScProject/OptimTrans/c++/src/OTL.cpp" "/home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles/main.o.dir/src/OTL.cpp.o"
+  "/home/jessica/MScProject/OptimTrans/c++/src/main.cpp" "/home/jessica/MScProject/OptimTrans/c++/build/CMakeFiles/main.o.dir/src/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

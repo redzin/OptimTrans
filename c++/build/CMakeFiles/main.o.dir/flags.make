@@ -6,5 +6,5 @@ CXX_FLAGS =  -Wno-deprecated  -Dcimg_use_tiff -Dcimg_use_jpeg  -Dcimg_use_png -D
 
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/jessica/MScProject/OptimTrans/include -I/usr/include/x86_64-linux-gnu -I/usr/include/OpenEXR -I/usr/include/x86_64-linux-gnu/ImageMagick-6 -I/usr/include/ImageMagick-6 
+CXX_INCLUDES = -I/home/jessica/MScProject/OptimTrans/c++/include -I/usr/include/x86_64-linux-gnu -I/usr/include/OpenEXR -I/usr/include/x86_64-linux-gnu/ImageMagick-6 -I/usr/include/ImageMagick-6 
 

@@ -5,7 +5,7 @@ CMakeFiles/main.o.dir/src/OTL.cpp.o
  ../include/CImg.h
  ../include/OTL.h
  ../include/Utils.h
- /home/jessica/MScProject/OptimTrans/src/OTL.cpp
+ /home/jessica/MScProject/OptimTrans/c++/src/OTL.cpp
  /usr/include/ImageMagick-6/Magick++.h
  /usr/include/ImageMagick-6/Magick++/Blob.h
  /usr/include/ImageMagick-6/Magick++/ChannelMoments.h
@@ -221,7 +221,7 @@ CMakeFiles/main.o.dir/src/main.cpp.o
  ../include/CImg.h
  ../include/OTL.h
  ../include/Utils.h
- /home/jessica/MScProject/OptimTrans/src/main.cpp
+ /home/jessica/MScProject/OptimTrans/c++/src/main.cpp
  /usr/include/ImageMagick-6/Magick++.h
  /usr/include/ImageMagick-6/Magick++/Blob.h
  /usr/include/ImageMagick-6/Magick++/ChannelMoments.h
