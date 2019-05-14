@@ -1,3 +1,9 @@
+%% Global Settings
+
+close all
+clear all
+clc
+
 addpath('scripts')
 format long
 clc
@@ -10,12 +16,12 @@ global sigma;
 global filter_size;
 global filter_padding_value;
 
-sigma = 2.5;
-filter_size = 101;
+sigma = 4.0;
+filter_size = 61;
 filter_padding_value =  0.0;
 
-sigmas = [1.0 2.5 4.1 5.0];
-filter_sizes = [5 41 45 101];
+sigmas = [4.1]; %[1.0 2.5 4.1 5.0];
+filter_sizes = [101]; %[5 41 45 101];
 print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
 
 
@@ -24,10 +30,10 @@ format long g
 
 
 imgs = {
-         im2double(rgb2gray(imread('images/one-blob.png')))
-         im2double(rgb2gray(imread('images/one-blob-moved.png')))
-         im2double(rgb2gray(imread('images/one-blob-moved-even-more.png')))
-         im2double(rgb2gray(imread('images/one-blob-moved-even-more-again.png')))
+         im2double(rgb2gray(imread('../images/one-blob.png')))
+         im2double(rgb2gray(imread('../images/one-blob-moved.png')))
+         im2double(rgb2gray(imread('../images/one-blob-moved-even-more.png')))
+         im2double(rgb2gray(imread('../images/one-blob-moved-even-more-again.png')))
 };
 
 
@@ -325,12 +331,68 @@ if enable_prints
     end
 end
 
+%% 3d Basic Setup Test
 
+close all
+clc
 
+A = zeros([64,64,64]);
+B = zeros([64,64,64]);
+C = zeros([64,64,64]);
+D = zeros([64,64,64]);
 
+A(12,12,12) = 1;
+B(25,25,25) = 1;
+C(38,38,38) = 1;
+D(50,50,50) = 1;
 
+A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+A = A ./ sum(A(:));
+B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+B = B ./ sum(B(:));
+C = imgaussfilt3(C, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+C = C ./ sum(C(:));
+D = imgaussfilt3(D, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+D = D ./ sum(D(:));
 
+% A-B Comparison
+[wd,v,w] = Sinkhorn(A,B);
+ed = sqrt(sum(  (A(:) - B(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
 
+% A-C Comparison
+[wd,v,w] = Sinkhorn(A,C);
+ed = sqrt(sum(  (A(:) - C(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-C: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+% A-D Comparison
+[wd,v,w] = Sinkhorn(A,D);
+ed = sqrt(sum(  (A(:) - D(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-D: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+% Display
+points =  []
+
+[maxA,maxAI] = max(A(:));
+[points(1,1) points(1,2) points(1,3)] = ind2sub(size(A),maxAI);
+
+[maxB,maxBI] = max(B(:));
+[points(2,1) points(2,2) points(2,3)] = ind2sub(size(B),maxBI);
+
+[maxC,maxCI] = max(C(:));
+[points(3,1) points(3,2) points(3,3)] = ind2sub(size(C),maxCI);
+
+[maxD,maxDI] = max(D(:));
+[points(4,1) points(4,2) points(4,3)] = ind2sub(size(D),maxDI);
+
+figure
+ax = pcshow(pointCloud(points), 'MarkerSize', 200);
+ax.XLim = [0 64];
+ax.YLim = [0 64];
+ax.ZLim = [0 64];
 
 
 

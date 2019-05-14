@@ -2,16 +2,21 @@ function [wasserstein_dist,v,w] = Sinkhorn(im1,im2)
 
 global sigma;
 
-iter = 250;
+filter = @(x) filt(x);
+if ndims(im1) == 3
+filter = @(x) filt3(x);
+end
 
-v = ones(size(im1,1), size(im1,2));
-w = ones(size(im1,1), size(im1,2));
+iter = 50;
+
+v = ones(size(im1));
+w = ones(size(im1));
 
 for i = 1:iter
-    v = maxv(filt(w), 10^-300);
+    v = maxv(filter(w), 10^-300);
     v = im1 ./ v;
-
-    w = maxv(filt(v), 10^-300);
+    
+    w = maxv(filter(v), 10^-300);
     w = im2 ./ w;
 end
 
