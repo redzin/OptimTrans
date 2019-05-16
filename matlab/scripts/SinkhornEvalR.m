@@ -8,3 +8,5 @@ function out = SinkhornEvalR(v,w,a)
     out = v .* filter( w .* a);
 end
 
+
+

@@ -16,8 +16,8 @@ global sigma;
 global filter_size;
 global filter_padding_value;
 
-sigma = 4.0;
-filter_size = 61;
+sigma = 5.0;
+filter_size = 101;
 filter_padding_value =  0.0;
 
 sigmas = [4.1]; %[1.0 2.5 4.1 5.0];
@@ -342,6 +342,9 @@ C = zeros([64,64,64]);
 D = zeros([64,64,64]);
 
 A(12,12,12) = 1;
+A(12,25,12) = 1;
+A(12,12,38) = 1;
+A(25,25,38) = 1;
 B(25,25,25) = 1;
 C(38,38,38) = 1;
 D(50,50,50) = 1;
@@ -373,26 +376,30 @@ ed = sqrt(sum(  (A(:) - D(:)).^2  ));
 marg = SinkhornEvalR(v,w,ones(size(v)));
 disp("A-D: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
 
-% Display
-points =  []
 
-[maxA,maxAI] = max(A(:));
-[points(1,1) points(1,2) points(1,3)] = ind2sub(size(A),maxAI);
 
-[maxB,maxBI] = max(B(:));
-[points(2,1) points(2,2) points(2,3)] = ind2sub(size(B),maxBI);
 
-[maxC,maxCI] = max(C(:));
-[points(3,1) points(3,2) points(3,3)] = ind2sub(size(C),maxCI);
 
-[maxD,maxDI] = max(D(:));
-[points(4,1) points(4,2) points(4,3)] = ind2sub(size(D),maxDI);
-
-figure
-ax = pcshow(pointCloud(points), 'MarkerSize', 200);
-ax.XLim = [0 64];
-ax.YLim = [0 64];
-ax.ZLim = [0 64];
+% Display point cloud
+% points =  [];
+% 
+% [maxA,maxAI] = max(A(:));
+% [points(1,1) points(1,2) points(1,3)] = ind2sub(size(A),maxAI);
+% 
+% [maxB,maxBI] = max(B(:));
+% [points(2,1) points(2,2) points(2,3)] = ind2sub(size(B),maxBI);
+% 
+% [maxC,maxCI] = max(C(:));
+% [points(3,1) points(3,2) points(3,3)] = ind2sub(size(C),maxCI);
+% 
+% [maxD,maxDI] = max(D(:));
+% [points(4,1) points(4,2) points(4,3)] = ind2sub(size(D),maxDI);
+% 
+% figure
+% ax = pcshow(pointCloud(points), 'MarkerSize', 200);
+% ax.XLim = [0 64];
+% ax.YLim = [0 64];
+% ax.ZLim = [0 64];
 
 
 
