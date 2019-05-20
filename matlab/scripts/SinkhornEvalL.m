@@ -5,6 +5,6 @@ function out = SinkhornEvalL(v,w,a)
         filter = @(x) filt3(x);
     end
     
-    out = w .* filt( v .* a);
+    out = w .* filter( v .* a);
 end
 

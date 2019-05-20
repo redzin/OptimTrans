@@ -17,7 +17,7 @@ global filter_size;
 global filter_padding_value;
 
 sigma = 5.0;
-filter_size = 101;
+filter_size = 129;
 filter_padding_value =  0.0;
 
 sigmas = [4.1]; %[1.0 2.5 4.1 5.0];
@@ -331,24 +331,74 @@ if enable_prints
     end
 end
 
+
 %% 3d Basic Setup Test
+format long g
 
 close all
 clc
 
-A = zeros([64,64,64]);
-B = zeros([64,64,64]);
-C = zeros([64,64,64]);
-D = zeros([64,64,64]);
+showE = 1;
+renewVars = 0;
 
-A(12,12,12) = 1;
-A(12,25,12) = 1;
-A(12,12,38) = 1;
-A(25,25,38) = 1;
-B(25,25,25) = 1;
-C(38,38,38) = 1;
-D(50,50,50) = 1;
 
+if(renewVars | exist('orig_A','var') ~= 1)
+orig_A = rand([64,64,64]);
+orig_A(orig_A > 0.99) = 1;
+orig_A(orig_A < 0.99) = 0;
+orig_B = zeros([64,64,64]);
+orig_B(16,16,48) = 1;
+
+orig_C = zeros([64,64,64]);
+orig_C(32,32,32) = 1;
+
+orig_D = zeros([64,64,64]);
+orig_D(48,48,16) = 1;
+
+orig_E = zeros([64,64,64]); % Only used for display purposes
+orig_E(orig_B > 0 | orig_C > 0 | orig_D > 0) = 1;
+end
+A = orig_A;
+B = orig_B;
+C = orig_C;
+D = orig_D;
+E = orig_E;
+
+% FIGURE 1; Pre-Gaussian filter
+color = jet(256);
+figure
+volshow(orig_A,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test1-A-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+if(showE)
+    figure
+    volshow(orig_E,...
+            'Renderer', 'MaximumintensityProjection',...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+    if enable_prints
+        set(gcf,'PaperPositionMode','auto')
+        for type = print_types
+            print("prints/3d-test1-E-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        end
+    end
+end
+
+% Gaussian filter pre-processing
 A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
 A = A ./ sum(A(:));
 B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
@@ -357,49 +407,311 @@ C = imgaussfilt3(C, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_
 C = C ./ sum(C(:));
 D = imgaussfilt3(D, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
 D = D ./ sum(D(:));
+E = imgaussfilt3(E, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+E = E ./ sum(E(:));
+
+% Post-Gaussian-filter display
+figure
+volshow(A,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test1-A-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+if(showE)
+    figure
+    volshow(E,...
+            'Renderer', 'MaximumintensityProjection',...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+    if enable_prints
+        set(gcf,'PaperPositionMode','auto')
+        for type = print_types
+            print("prints/3d-test1-E-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        end
+    end
+end
+
+% Print meta info
+disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
 
 % A-B Comparison
 [wd,v,w] = Sinkhorn(A,B);
-ed = sqrt(sum(  (A(:) - B(:)).^2  ));
+ed = sqrt(sum(  (orig_A(:) - orig_B(:)).^2  ));
 marg = SinkhornEvalR(v,w,ones(size(v)));
 disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
 
 % A-C Comparison
 [wd,v,w] = Sinkhorn(A,C);
-ed = sqrt(sum(  (A(:) - C(:)).^2  ));
+ed = sqrt(sum(  (orig_A(:) - orig_C(:)).^2  ));
 marg = SinkhornEvalR(v,w,ones(size(v)));
 disp("A-C: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
 
 % A-D Comparison
 [wd,v,w] = Sinkhorn(A,D);
-ed = sqrt(sum(  (A(:) - D(:)).^2  ));
+ed = sqrt(sum(  (orig_A(:) - orig_D(:)).^2  ));
 marg = SinkhornEvalR(v,w,ones(size(v)));
 disp("A-D: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
 
 
+%% 3d Basic Setup Test 2
+format long g
+
+close all
+clc
+
+showE = 1;
+A = orig_A;
+B = orig_B;
+C = orig_C;
+D = orig_D;
+E = orig_E;
+
+A(1:64,1:64,1:48) = 0;
+A(12:64,1:64,1:64) = 0;
+A(1:64,12:64,1:64) = 0;
+
+% FIGURE 1; Pre-Gaussian filter
+color = jet(256);
+figure
+volshow(A,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test2-A-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+if(showE)
+    figure
+volshow(orig_E,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+    if enable_prints
+        set(gcf,'PaperPositionMode','auto')
+        for type = print_types
+            print("prints/3d-test2-E-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        end
+    end
+end    
+
+% Gaussian filter pre-processing
+A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+A = A ./ sum(A(:));
+B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+B = B ./ sum(B(:));
+C = imgaussfilt3(C, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+C = C ./ sum(C(:));
+D = imgaussfilt3(D, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+D = D ./ sum(D(:));
+E = imgaussfilt3(E, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+E = E ./ sum(E(:));
+
+% Post-Gaussian-filter display
+figure
+volshow(A,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test2-A-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+if(showE)
+    figure
+    volshow(E,...
+            'Renderer', 'MaximumintensityProjection',...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',[30],...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+    if enable_prints
+        set(gcf,'PaperPositionMode','auto')
+        for type = print_types
+            print("prints/3d-test2-E-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        end
+    end
+end
+
+% Print meta info
+disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
+
+% A-B Comparison
+[wd,v,w] = Sinkhorn(A,B);
+ed = sqrt(sum(  (orig_A(:) - orig_B(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+% A-C Comparison
+[wd,v,w] = Sinkhorn(A,C);
+ed = sqrt(sum(  (orig_A(:) - orig_C(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-C: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+% A-D Comparison
+[wd,v,w] = Sinkhorn(A,D);
+ed = sqrt(sum(  (orig_A(:) - orig_D(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("A-D: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+
+%% 3d Basic Setup Test, Display Marginals and/or Parameter Sensitivity
+
+format long g
+
+close all
+clc
+
+X = rand([64,64,64]);
+X(X > 0.99) = 1;
+X(X < 0.99) = 0;
+orig_X = X;
+Y = rand([64,64,64]);
+Y(Y > 0.99) = 1;
+Y(Y < 0.99) = 0;
+orig_Y = Y;
+% B = zeros([64,64,64]);
+% B(32,32,32) = 1;
+% orig_B = B;
+
+% FIGURE 1; Pre-Gaussian filter
+color = jet(256);
+figure
+volshow(orig_X,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-A-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+figure
+volshow(orig_Y,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-B-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+% Gaussian filter pre-processing
+X = imgaussfilt3(X, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+X = X ./ sum(X(:));
+Y = imgaussfilt3(Y, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+Y = Y ./ sum(Y(:));
+
+% Post-Gaussian-filter display
+figure
+volshow(X,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-A-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+figure
+volshow(Y,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test-B-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+% Print meta info
+disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
+
+% A-B Comparison
+[wd,v,w] = Sinkhorn(X,Y);
+ed = sqrt(sum(  (orig_X(:) - orig_Y(:)).^2  ));
+margR = SinkhornEvalR(v,w,ones(size(v)));
+margL = SinkhornEvalL(v,w,ones(size(v)));
+disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of right marginal = " + sum(margR(:)) + ", sum of left marginal = " + sum(margL(:)) )
+
+figure
+volshow(margR,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test-A-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+figure
+volshow(margL,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',[30],...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test-B-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
 
 
 
-% Display point cloud
-% points =  [];
-% 
-% [maxA,maxAI] = max(A(:));
-% [points(1,1) points(1,2) points(1,3)] = ind2sub(size(A),maxAI);
-% 
-% [maxB,maxBI] = max(B(:));
-% [points(2,1) points(2,2) points(2,3)] = ind2sub(size(B),maxBI);
-% 
-% [maxC,maxCI] = max(C(:));
-% [points(3,1) points(3,2) points(3,3)] = ind2sub(size(C),maxCI);
-% 
-% [maxD,maxDI] = max(D(:));
-% [points(4,1) points(4,2) points(4,3)] = ind2sub(size(D),maxDI);
-% 
-% figure
-% ax = pcshow(pointCloud(points), 'MarkerSize', 200);
-% ax.XLim = [0 64];
-% ax.YLim = [0 64];
-% ax.ZLim = [0 64];
 
 
 
+
+gaussian
