@@ -16,13 +16,14 @@ global sigma;
 global filter_size;
 global filter_padding_value;
 
-sigma = 5.0;
+sigma = 1.0;
 filter_size = 129;
 filter_padding_value =  0.0;
 
-sigmas = [4.1]; %[1.0 2.5 4.1 5.0];
-filter_sizes = [101]; %[5 41 45 101];
-print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
+sigmas = [1.0]; %[1.0 2.5 4.1 5.0];
+filter_sizes = [129]; %[5 41 45 101];
+print_types = {{"-dpng", ".png"}};
+% print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
 
 
 %% Wasserstein distance test
@@ -479,9 +480,9 @@ C = orig_C;
 D = orig_D;
 E = orig_E;
 
-A(1:64,1:64,1:48) = 0;
-A(12:64,1:64,1:64) = 0;
-A(1:64,12:64,1:64) = 0;
+A(1:64,1:64,1:32) = 0;
+A(32:64,1:64,1:64) = 0;
+A(1:64,32:64,1:64) = 0;
 
 % FIGURE 1; Pre-Gaussian filter
 color = jet(256);
@@ -490,7 +491,7 @@ volshow(A,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
@@ -501,11 +502,11 @@ if enable_prints
 end
 if(showE)
     figure
-volshow(orig_E,...
+    volshow(orig_E,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
     if enable_prints
@@ -534,7 +535,7 @@ volshow(A,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
@@ -549,7 +550,7 @@ if(showE)
             'Renderer', 'MaximumintensityProjection',...
             'Colormap', color,...
             'CameraTarget',[0 0 0],...
-            'CameraViewAngle',[30],...
+            'CameraViewAngle',30,...
             'CameraUpVector',[0 1 0],...
             'CameraPosition',[2 1.5 2]);
     if enable_prints
@@ -589,17 +590,20 @@ format long g
 close all
 clc
 
+renewVars = 0;
+
+if (renewVars)
 X = rand([64,64,64]);
-X(X > 0.99) = 1;
-X(X < 0.99) = 0;
+X(X > 0.9999) = 1;
+X(X < 0.9999) = 0;
 orig_X = X;
 Y = rand([64,64,64]);
-Y(Y > 0.99) = 1;
-Y(Y < 0.99) = 0;
+Y(Y > 0.9999) = 1;
+Y(Y < 0.9999) = 0;
 orig_Y = Y;
-% B = zeros([64,64,64]);
-% B(32,32,32) = 1;
-% orig_B = B;
+end
+X = orig_X;
+Y = orig_Y;
 
 % FIGURE 1; Pre-Gaussian filter
 color = jet(256);
@@ -608,13 +612,13 @@ volshow(orig_X,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
-        print("prints/3d-test3-A-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        print("prints/3d-test3-A-pre-gaussian-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
     end
 end
 figure
@@ -622,15 +626,20 @@ volshow(orig_Y,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
-        print("prints/3d-test3-B-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        print("prints/3d-test3-B-pre-gaussian-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
     end
 end
+
+for sigma=sigmas
+X = orig_X;
+Y = orig_Y;
+
 
 % Gaussian filter pre-processing
 X = imgaussfilt3(X, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
@@ -644,7 +653,7 @@ volshow(X,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
@@ -658,13 +667,13 @@ volshow(Y,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
-        print("prints/3d-test-B-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        print("prints/3d-test3-B-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
     end
 end
 
@@ -683,13 +692,13 @@ volshow(margR,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
-        print("prints/3d-test-A-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        print("prints/3d-test3-A-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
     end
 end
 
@@ -698,14 +707,674 @@ volshow(margL,...
         'Renderer', 'MaximumintensityProjection',...
         'Colormap', color,...
         'CameraTarget',[0 0 0],...
-        'CameraViewAngle',[30],...
+        'CameraViewAngle',30,...
         'CameraUpVector',[0 1 0],...
         'CameraPosition',[2 1.5 2]);
 if enable_prints
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
-        print("prints/3d-test-B-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+        print("prints/3d-test3-B-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
     end
+end
+
+end
+
+%% 3d Pulse Test
+
+format long g
+
+close all
+clc
+
+showE = 1;
+renewVars = 1;
+
+
+if(renewVars | exist('orig_A','var') ~= 1)
+orig_B = zeros([64,64,64]);
+orig_B(16,16,48) = 1;
+
+orig_C = zeros([64,64,64]);
+orig_C(32,32,32) = 1;
+
+orig_D = zeros([64,64,64]);
+orig_D(48,48,16) = 1;
+
+orig_E = zeros([64,64,64]); % Only used for display purposes
+orig_E(orig_B > 0 | orig_C > 0 | orig_D > 0) = 1;
+end
+B = orig_B;
+C = orig_C;
+D = orig_D;
+E = orig_E;
+
+% FIGURE 1; Pre-Gaussian filter
+color = jet(256);
+% figure
+% volshow(orig_A,...
+%         'Renderer', 'MaximumintensityProjection',...
+%         'Colormap', color,...
+%             'CameraTarget',[0 0 0],...
+%             'CameraViewAngle',30,...
+%             'CameraUpVector',[0 1 0],...
+%             'CameraPosition',[2 1.5 2]);
+% if enable_prints
+%     set(gcf,'PaperPositionMode','auto')
+%     for type = print_types
+%         print("prints/3d-test1-A-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+%     end
+% end
+
+if(showE)
+    figure
+    volshow(orig_E,...
+            'Renderer', 'MaximumintensityProjection',...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+%     if enable_prints
+%         set(gcf,'PaperPositionMode','auto')
+%         for type = print_types
+%             print("prints/3d-test1-E-pre-gaussian-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+%         end
+%     end
+end
+
+% Gaussian filter pre-processing
+% A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+% A = A ./ sum(A(:));
+B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+B = B ./ sum(B(:));
+C = imgaussfilt3(C, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+C = C ./ sum(C(:));
+D = imgaussfilt3(D, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+D = D ./ sum(D(:));
+E = imgaussfilt3(E, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+E = E ./ sum(E(:));
+
+% Post-Gaussian-filter display
+% figure
+% volshow(A,...
+%         'Renderer', 'MaximumintensityProjection',...
+%         'Colormap', color,...
+%             'CameraTarget',[0 0 0],...
+%             'CameraViewAngle',30,...
+%             'CameraUpVector',[0 1 0],...
+%             'CameraPosition',[2 1.5 2]);
+% 
+% if enable_prints
+%     set(gcf,'PaperPositionMode','auto')
+%     for type = print_types
+%         print("prints/3d-test1-A-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+%     end
+% end
+
+if(showE)
+    figure
+    volshow(E,...
+            'Renderer', 'MaximumintensityProjection',...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+%     if enable_prints
+%         set(gcf,'PaperPositionMode','auto')
+%         for type = print_types
+%             print("prints/3d-test1-E-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+%         end
+%     end
+end
+
+% Print meta info
+disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
+
+% B-C Comparison
+[wd,v,w] = Sinkhorn(B,C);
+ed = sqrt(sum(  (orig_B(:) - orig_C(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("B-C: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+% B-D Comparison
+[wd,v,w] = Sinkhorn(B,D);
+ed = sqrt(sum(  (orig_B(:) - orig_D(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("B-D: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+%% Finer grid time test
+
+% Test notes:
+% 240x240x240 seems to be max resolution before crash on desktop with 8 gigs of ram and ubuntu 19.04
+% 200x200x200 takes about 30 seconds
+% 64x64x64 is <10 seconds.
+
+
+format long g
+
+close all
+clc
+
+renewVars = 1;
+arraySize = 64;
+enable_prints = 0;
+tic
+if (renewVars)
+X = rand([arraySize,arraySize,arraySize]);
+X(X > 0.9999) = 1;
+X(X < 0.9999) = 0;
+orig_X = X;
+Y = rand([arraySize,arraySize,arraySize]);
+Y(Y > 0.9999) = 1;
+Y(Y < 0.9999) = 0;
+orig_Y = Y;
+end
+X = orig_X;
+Y = orig_Y;
+
+% FIGURE 1; Pre-Gaussian filter
+color = jet(256);
+figure
+volshow(orig_X,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-A-pre-gaussian-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+figure
+volshow(orig_Y,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-B-pre-gaussian-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+for sigma=sigmas
+X = orig_X;
+Y = orig_Y;
+
+
+% Gaussian filter pre-processing
+X = imgaussfilt3(X, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+X = X ./ sum(X(:));
+Y = imgaussfilt3(Y, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+Y = Y ./ sum(Y(:));
+
+% Post-Gaussian-filter display
+figure
+volshow(X,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-A-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+figure
+volshow(Y,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-B-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+% Print meta info
+disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
+
+% A-B Comparison
+[wd,v,w] = Sinkhorn(X,Y);
+ed = sqrt(sum(  (orig_X(:) - orig_Y(:)).^2  ));
+margR = SinkhornEvalR(v,w,ones(size(v)));
+margL = SinkhornEvalL(v,w,ones(size(v)));
+disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of right marginal = " + sum(margR(:)) + ", sum of left marginal = " + sum(margL(:)) )
+
+figure
+volshow(margR,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-A-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+figure
+volshow(margL,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]);
+if enable_prints
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print("prints/3d-test3-B-marginal-"+sigma+"-sigma-"+filter_size+"-filter-size"+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
+
+end
+
+disp(toc)
+
+%% Eternally repeating 2d Test of Interpolation using Wasserstein Barycenters
+
+close all
+clc
+
+filename = 'animations/2d-barycenter-interpolation-example-01.gif';
+frameRate = 60;
+alphas = [linspace(0,0,2) linspace(0,1,6) linspace(1,1,2) linspace(1,0,6)];
+
+dist1 = make_dist(im2double(rgb2gray(imread('../images/smile_s.png'))));
+dist2 = make_dist(im2double(rgb2gray(imread('../images/dots_s.png'))));
+
+fig = figure;
+while(true)
+for alpha = alphas
+    barycenter = WassersteinBarycenter(dist1, dist2, alpha);
+    img = barycenter;% ./ max(barycenter(:));
+    imagesc(img);
+    title(['sum = ', num2str(sum(barycenter(:)), 4)])
+    drawnow
+end
+end
+
+
+%% 2d Test of Interpolation using Wasserstein Barycenters
+
+close all
+clc
+
+filename = 'animations/2d-barycenter-interpolation-example-01.gif';
+frameRate = 60;
+alphas = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+
+dist1 = make_dist(im2double(rgb2gray(imread('../images/smile_s.png'))));
+dist2 = make_dist(im2double(rgb2gray(imread('../images/dots_s.png'))));
+
+fig = figure;
+n = 1;
+disp('Creating gif...')
+for alpha = alphas
+    if mod(n,10) == 0
+        disp([num2str(round(100 * n / length(alphas))), '%...'])
+    end
+    
+    barycenter = WassersteinBarycenter(dist1, dist2, alpha);
+    img = barycenter;% ./ max(barycenter(:));
+    imagesc(img);
+    title(['sum = ', num2str(sum(barycenter(:)), 4)])
+    drawnow
+    
+    % Write to gif
+    frame = getframe(fig);
+    [im,map] = frame2im(frame);
+    
+    [imind,cm] = rgb2ind(im,256); 
+    % Write to the GIF File 
+    if n == 1
+        imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+    else 
+        imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+    end
+    n = n+1;
+end
+clc
+close all
+disp('Finished creating gif.')
+
+
+%% 3d Test of Interpolation using Wasserstein Barycenters
+
+format long g
+
+close all
+clc
+
+renewVars = 0;
+color = jet(256);
+makeGif = 1;
+frameRate = 30;
+renderingType = 'Isosurface';
+filename = ['animations/3d-barycenter-interpolation-example-',lower(renderingType),'-01.gif'];
+alphas = [linspace(0,0,10) linspace(0,1,60) linspace(1,1,10)];
+
+if(renewVars | exist('orig_A','var') ~= 1)
+orig_A = rand([64,64,64]);
+orig_A(orig_A > 0.99) = 1;
+orig_A(orig_A < 0.99) = 0;
+
+orig_B = zeros([64,64,64]);
+orig_B(16,16,48) = 1;
+end
+
+A = orig_A;
+B = orig_B;
+
+% Gaussian filter pre-processing
+A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+A = A ./ sum(A(:));
+B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+B = B ./ sum(B(:));
+
+if (~makeGif)
+    figure
+    volshow(A,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+    figure
+    volshow(B,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+
+end
+
+fig = figure;
+n = 1;
+if (makeGif)
+    disp('Creating gif...')
+end
+for alpha = alphas
+    if mod(n,10) == 0
+        disp([num2str(round(100 * n / length(alphas))), '%...'])
+    end
+    
+    barycenter = WassersteinBarycenter(A, B, alpha);
+    img = barycenter;% ./ max(barycenter(:));
+    
+    volshow(img,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+
+    title(['sum = ', num2str(sum(barycenter(:)), 4)])
+    drawnow
+    
+    if (makeGif)
+        % Write to gif
+        frame = getframe(fig);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if n == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+        end
+    end
+    n = n+1;
+end
+clc
+close all
+if(makeGif)
+    disp('Finished creating gif.')
+end
+
+
+% Print meta info
+% disp("Sigma: " + sigma + ", kernel size: "+ filter_size)
+
+% A-B Comparison
+% [wd,v,w] = Sinkhorn(A,B);
+% ed = sqrt(sum(  (orig_A(:) - orig_B(:)).^2  ));
+% marg = SinkhornEvalR(v,w,ones(size(v)));
+% disp("A-B: WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+
+%% 3d Test of Interpolation using Wasserstein Barycenters 2
+
+format long g
+
+close all
+clc
+
+renewVars = 0;
+color = jet(256);
+createGif = 1;
+
+if(renewVars | exist('orig_A','var') ~= 1)
+orig_A = rand([64,64,64]);
+orig_A(orig_A > 0.99) = 1;
+orig_A(orig_A < 0.99) = 0;
+orig_A(1:64,1:64,1:32) = 0;
+orig_A(32:64,1:64,1:64) = 0;
+orig_A(1:64,32:64,1:64) = 0;
+
+orig_B = rand([64,64,64]);
+orig_B(orig_B > 0.99) = 1;
+orig_B(orig_B < 0.99) = 0;
+orig_B(1:64,1:64,32:64) = 0;
+orig_B(1:32,1:64,1:64) = 0;
+orig_B(1:64,1:32,1:64) = 0;
+end
+
+A = orig_A;
+B = orig_B;
+
+% Gaussian filter pre-processing
+A = imgaussfilt3(A, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+A = A ./ sum(A(:));
+B = imgaussfilt3(B, sigma, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+B = B ./ sum(B(:));
+
+
+filename = 'animations/3d-barycenter-interpolation-example-02.gif';
+frameRate = 60;
+alphas = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+% alphas = linspace(0,1,5);
+
+
+if (~createGif)
+figure
+volshow(A,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+
+figure
+volshow(B,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+end
+
+
+if (createGif)
+fig = figure;
+n = 1;
+disp('Creating gif...')
+for alpha = alphas
+    if mod(n,10) == 0
+        disp([num2str(round(100 * n / length(alphas))), '%...'])
+    end
+    
+    barycenter = WassersteinBarycenter(A, B, alpha);
+    img = barycenter;% ./ max(barycenter(:));
+    
+    volshow(img,...
+        'Renderer', 'MaximumintensityProjection',...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 1 0],...
+            'CameraPosition',[2 1.5 2]);
+
+    title(['sum = ', num2str(sum(barycenter(:)), 4)])
+    drawnow
+    
+    % Write to gif
+    frame = getframe(fig);
+    [im,map] = frame2im(frame);
+    
+    [imind,cm] = rgb2ind(im,256); 
+    % Write to the GIF File 
+    if n == 1
+        imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+    else 
+        imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+    end
+    n = n+1;
+end
+clc
+close all
+disp('Finished creating gif.')
+end
+
+
+%% Display teapot
+close all
+clc
+
+
+color = jet(256);
+makeGif = 1;
+frameRate = 60;
+renderingType = 'VolumeRendering';
+filename = ['animations/teapot-duck-transformation-',lower(renderingType),'-02.gif'];
+alphas = [linspace(0,0,30) linspace(0,1,30) linspace(1,1,30) linspace(1,0,30)];
+
+A_data = importdata('objects/teapot.txt');
+B_data = importdata('objects/duck.txt');
+
+orig_A = zeros([32 32 32]);
+for idx=1:size(A_data,1)
+    x = A_data(idx,:)+8;
+    orig_A(x(2), x(3), x(1)) = 1;
+end
+A = orig_A;
+
+orig_B = zeros([32 32 32]);
+for idx=1:size(B_data,1)
+    x = B_data(idx,:)+8;
+    orig_B(x(3), x(2), x(1)) = 1;
+end
+orig_B = flip(orig_B,3);
+B = orig_B;
+
+
+A = filt3(A);
+A = A ./ sum(A(:));
+B = filt3(B);
+B = B ./ sum(B(:));
+
+% figure
+% volshow(A,...
+%         'Renderer', renderingType,...%         'Isovalue', 1,...
+%         'Colormap', color,...
+%             'CameraTarget',[0 0 0],...
+%             'CameraViewAngle',30,...
+%             'CameraUpVector',[0 1 0],...
+%             'CameraPosition',[2 1.5 2]);
+% figure
+% volshow(B,...
+%         'Renderer', renderingType,...%         'Isovalue', 1,...
+%         'Colormap', color,...
+%             'CameraTarget',[0 0 0],...
+%             'CameraViewAngle',30,...
+%             'CameraUpVector',[0 1 0],...
+%             'CameraPosition',[2 1.5 2]);
+
+fig = figure;
+n = 1;
+if (makeGif)
+    disp('Creating gif...')
+end
+for alpha = alphas
+    
+%     if(alpha == 0)
+%         img = B;
+%     elseif(alpha == 1)
+%         img = A;
+%     else
+        barycenter = WassersteinBarycenter(A, B, alpha);
+        img = barycenter;% ./ max(barycenter(:));
+%     end
+    
+    volshow(img,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 110 0],...
+            'CameraPosition',[2 1.5 2]);
+
+    disp(['Alpha = ', num2str(alpha), ', sum = ', num2str(sum(img(:)))])
+    drawnow
+    if (makeGif)
+        % Write to gif
+        frame = getframe(fig);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if n == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+        end
+    end
+    if mod(n,10) == 0
+        disp([num2str(round(100 * n / length(alphas))), '%...'])
+    end
+    n = n+1;
+end
+
+        
+clc
+close all
+if(makeGif)
+    disp('Finished creating gif.')
 end
 
 
@@ -714,4 +1383,17 @@ end
 
 
 
-gaussian
+
+
+
+
+
+
+
+
+
+
+
+
+
+
