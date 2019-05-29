@@ -10,13 +10,14 @@ clc
 clear all
 close all
 
-enable_prints = true;
 
 global sigma;
 global filter_size;
 global filter_padding_value;
+global enable_entropic_sharpening;
+global enable_prints;
 
-sigma = 1.0;
+sigma = 1.05;
 filter_size = 129;
 filter_padding_value =  0.0;
 
@@ -24,6 +25,10 @@ sigmas = [1.0]; %[1.0 2.5 4.1 5.0];
 filter_sizes = [129]; %[5 41 45 101];
 print_types = {{"-dpng", ".png"}};
 % print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
+enable_prints = true;
+
+% For Wasserstein Barycenter computaions
+enable_entropic_sharpening = true;
 
 
 %% Wasserstein distance test
@@ -1018,9 +1023,13 @@ end
 close all
 clc
 
+enable_entropic_sharpening = 1;
+entropic_factor = 0.95;
+write_gif = 0;
 filename = 'animations/2d-barycenter-interpolation-example-01.gif';
 frameRate = 60;
 alphas = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+% alphas = linspace(0,1,5);
 
 dist1 = make_dist(im2double(rgb2gray(imread('../images/smile_s.png'))));
 dist2 = make_dist(im2double(rgb2gray(imread('../images/dots_s.png'))));
@@ -1033,22 +1042,24 @@ for alpha = alphas
         disp([num2str(round(100 * n / length(alphas))), '%...'])
     end
     
-    barycenter = WassersteinBarycenter(dist1, dist2, alpha);
+    barycenter = WassersteinBarycenterGeneralized({dist1, dist2}, [alpha, 1-alpha], entropic_factor);
     img = barycenter;% ./ max(barycenter(:));
     imagesc(img);
     title(['sum = ', num2str(sum(barycenter(:)), 4)])
     drawnow
     
     % Write to gif
-    frame = getframe(fig);
-    [im,map] = frame2im(frame);
-    
-    [imind,cm] = rgb2ind(im,256); 
-    % Write to the GIF File 
-    if n == 1
-        imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
-    else 
-        imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+    if (write_gif)
+        frame = getframe(fig);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if n == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+        end
     end
     n = n+1;
 end
@@ -1066,7 +1077,7 @@ clc
 
 renewVars = 0;
 color = jet(256);
-makeGif = 1;
+makeGif = 0;
 frameRate = 30;
 renderingType = 'Isosurface';
 filename = ['animations/3d-barycenter-interpolation-example-',lower(renderingType),'-01.gif'];
@@ -1272,26 +1283,122 @@ disp('Finished creating gif.')
 end
 
 
-%% Display teapot
+%% Barycenter animation
 close all
 clc
 
-
-color = jet(256);
+sigma = 2.5;
+enable_entropic_sharpening = 1;
+entropic_factor = 0.99;
+figure_1_name = 'bunny';
+figure_2_name = 'duck';
 makeGif = 1;
 frameRate = 60;
 renderingType = 'VolumeRendering';
-filename = ['animations/teapot-duck-transformation-',lower(renderingType),'-02.gif'];
-alphas = [linspace(0,0,30) linspace(0,1,30) linspace(1,1,30) linspace(1,0,30)];
+alphas = [linspace(0,0,30) linspace(0,1,50) linspace(1,1,30) linspace(1,0,50)];
+entropic_factor = 0.99;
+grid_size = 64;
+grid_shift = 4;
+filename = ['animations/',figure_1_name,'-',figure_2_name,'-transformation-',lower(renderingType),'-grid-',num2str(grid_size),'.gif'];
+color = [linspace(1,1,256)' linspace(0.8,0.8,256)' linspace(0.1,0.1,256)'];
 
-A_data = importdata('objects/teapot.txt');
+A_data = importdata(['objects/',figure_1_name,'_56.txt']);
+B_data = importdata(['objects/',figure_2_name,'_56.txt']);
+
+orig_A = zeros([grid_size grid_size grid_size]);
+for idx=1:size(A_data,1)
+    x = A_data(idx,:)+grid_shift;
+    orig_A(x(3), x(1), x(2)) = 1;
+end
+orig_A = flip(orig_A,3);
+A = orig_A;
+
+orig_B = zeros([grid_size grid_size grid_size]);
+for idx=1:size(B_data,1)
+    x = B_data(idx,:)+grid_shift;
+    orig_B(x(3), x(2), x(1)) = 1;
+end
+orig_B = flip(orig_B,3);
+B = orig_B;
+
+
+A = filt3(A);
+A = A ./ sum(A(:));
+B = filt3(B);
+B = B ./ sum(B(:));
+
+fig = figure;
+color1 = [linspace(1,1,256)' linspace(0.65,0.65,256)' linspace(1,1,256)'];
+color2 = [linspace(1,1,256)' linspace(0.8,0.8,256)' linspace(0.1,0.1,256)'];
+n = 1;
+if (makeGif)
+    disp('Creating gif...')
+end
+for alpha = alphas
+    
+    img = WassersteinBarycenterGeneralized({A, B}, [alpha 1-alpha], entropic_factor);
+    color = alpha*color1 + (1-alpha)*color2;
+    
+    volshow(img,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 110 0],...
+            'CameraPosition',[2 1.5 2]);
+
+    disp(['Alpha = ', num2str(alpha), ', sum = ', num2str(sum(img(:)))])
+    drawnow
+    
+    
+    if (makeGif)
+        % Write to gif
+        frame = getframe(fig);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if n == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
+        end
+    end
+    
+    if mod(n,10) == 0
+        disp([num2str(round(100 * n / length(alphas))), '%...'])
+    end
+    
+    n = n+1;
+end
+
+% close all
+if(makeGif)
+    disp('Finished creating gif.')
+end
+
+%% Barycenter 2d figure progression
+
+close all
+clc
+
+sigma = 1.05;
+color = jet(256);
+renderingType = 'VolumeRendering';
+filename = ['animations/teapot-duck-transformation-',lower(renderingType),'-02.gif'];
+alphas = linspace(0,1,5);
+shift = 32;
+
+
+A_data = importdata('objects/bunny.txt');
 B_data = importdata('objects/duck.txt');
 
 orig_A = zeros([32 32 32]);
 for idx=1:size(A_data,1)
     x = A_data(idx,:)+8;
-    orig_A(x(2), x(3), x(1)) = 1;
+    orig_A(x(3), x(1), x(2)) = 1;
 end
+orig_A = flip(orig_A,3);
 A = orig_A;
 
 orig_B = zeros([32 32 32]);
@@ -1308,88 +1415,159 @@ A = A ./ sum(A(:));
 B = filt3(B);
 B = B ./ sum(B(:));
 
-% figure
-% volshow(A,...
-%         'Renderer', renderingType,...%         'Isovalue', 1,...
-%         'Colormap', color,...
-%             'CameraTarget',[0 0 0],...
-%             'CameraViewAngle',30,...
-%             'CameraUpVector',[0 1 0],...
-%             'CameraPosition',[2 1.5 2]);
-% figure
-% volshow(B,...
-%         'Renderer', renderingType,...%         'Isovalue', 1,...
-%         'Colormap', color,...
-%             'CameraTarget',[0 0 0],...
-%             'CameraViewAngle',30,...
-%             'CameraUpVector',[0 1 0],...
-%             'CameraPosition',[2 1.5 2]);
 
-fig = figure;
-n = 1;
-if (makeGif)
-    disp('Creating gif...')
-end
-for alpha = alphas
+height = 250;
+width = height * length(alphas)+1;
+
+fig = figure('Position', [0 0 width height]);
+hold on
+n = 0;
+for alpha=alphas
+    barycenter = WassersteinBarycenter(A, B, alpha);
+    img = barycenter;% ./ max(barycenter(:));
     
-%     if(alpha == 0)
-%         img = B;
-%     elseif(alpha == 1)
-%         img = A;
-%     else
-        barycenter = WassersteinBarycenter(A, B, alpha);
-        img = barycenter;% ./ max(barycenter(:));
-%     end
+    width = 1/length(alphas);
+    p = uipanel(fig, 'Position', [width*n, 0, width, 1], 'BorderType', 'none');
     
     volshow(img,...
+        'Parent', p,...
         'Renderer', renderingType,...
         'Colormap', color,...
             'CameraTarget',[0 0 0],...
             'CameraViewAngle',30,...
             'CameraUpVector',[0 110 0],...
-            'CameraPosition',[2 1.5 2]);
-
-    disp(['Alpha = ', num2str(alpha), ', sum = ', num2str(sum(img(:)))])
-    drawnow
-    if (makeGif)
-        % Write to gif
-        frame = getframe(fig);
-        [im,map] = frame2im(frame);
-
-        [imind,cm] = rgb2ind(im,256); 
-        % Write to the GIF File 
-        if n == 1
-            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/frameRate); 
-        else 
-            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/frameRate);
-        end
-    end
-    if mod(n,10) == 0
-        disp([num2str(round(100 * n / length(alphas))), '%...'])
-    end
-    n = n+1;
+            'CameraPosition',[1.7 1.5 1.7]);
+    n = n + 1;
 end
 
-        
-clc
+% if enable_prints
+%     set(gcf,'PaperPositionMode','auto')
+%     for type = print_types
+%         print("prints/duck-teapot-barycenters"+type{1}{2}, type{1}{1}, "-r0")
+%     end
+% end
+
+
+
+
+%% 3-way Barycenter test
+
+
 close all
-if(makeGif)
-    disp('Finished creating gif.')
+clc
+
+sigma = 2.5;
+enable_prints = true;
+enable_entropic_sharpening = false;
+entropic_factor = 0.99;
+renderingType = 'VolumeRendering';
+isosurface_value = 0.1;
+element_height = 120;
+color = jet(256);
+% bgcolor = [0.3 0.75 0.93]; % blue
+bgcolor = [1 1 1]; % white
+alphamap = linspace(0,1,256)';
+alphas = 5;
+num_rows = 5;
+grid_size = 64;
+grid_displace = 4;
+filename = "3-way-barycenter-interpolation-duck-teapot-bunny2-"+renderingType+"-sharpening-"+enable_entropic_sharpening+"-";
+
+num_elements = 0;
+for i = 1:num_rows
+    num_elements = num_elements + i;
 end
 
+A_data = importdata('objects/teapot_56.txt');
+B_data = importdata('objects/duck_56.txt');
+C_data = importdata('objects/bunny_56.txt');
+
+orig_A = zeros([grid_size grid_size grid_size]);
+for idx=1:size(A_data,1)
+    x = A_data(idx,:)+grid_displace;
+    orig_A(x(2), x(3), x(1)) = 1;
+end
+A = orig_A;
+
+orig_B = zeros([grid_size grid_size grid_size]);
+for idx=1:size(B_data,1)
+    x = B_data(idx,:)+grid_displace;
+    orig_B(x(3), x(2), x(1)) = 1;
+end
+orig_B = flip(orig_B,3);
+B = orig_B;
+
+orig_C = zeros([grid_size grid_size grid_size]);
+for idx=1:size(C_data,1)
+    x = C_data(idx,:)+grid_displace;
+    orig_C(x(3), x(1), x(2)) = 1;
+end
+orig_C = flip(orig_C,3);
+C = orig_C;
+
+A = filt3(A);
+A = A ./ sum(A(:));
+B = filt3(B);
+B = B ./ sum(B(:));
+C = filt3(C);
+C = C ./ sum(C(:));
+
+width = element_height * num_elements;
+height = width;
+
+fig = figure('Position', [0 0 width height], 'Color', bgcolor);
+set(gca,'visible','off')
+hold on
+rows = linspace(5,1,num_rows);
+
+fig.WindowState = 'maximized';
+
+for i=rows
+    
+    weight_towards_3rd = (length(rows)-i)/(length(rows)-1);
+    alphas = linspace(0,1,i);
+    
+    for j = 1:i
+        alpha = [alphas(j) 1.0-alphas(j)] .* (1.0-weight_towards_3rd);
+        alpha = [alpha weight_towards_3rd];
+        
+        if (renderingType == "VolumeRendering")
+            color = [linspace(alpha(1),alpha(1),256)' linspace(alpha(2),alpha(2),256)' linspace(alpha(3),alpha(3),256)'];
+        end
+        
+        barycenter = WassersteinBarycenterGeneralized({A, B, C}, alpha, entropic_factor);
+        img = barycenter;% ./ sum(barycenter(:));
+        
+        disp(['Sum = ', num2str(sum(img(:)))])
+        
+        w = 1/num_rows;
+        h = 1/num_rows;
+        p = uipanel(fig, 'Position', [w*(j-1)+(num_rows-i)/(num_rows*2), (num_rows-i)/num_rows, w, h], 'BorderType', 'none');
+
+        volshow(img,...
+            'Parent', p,...
+            'Renderer', renderingType,...
+            'Isovalue', isosurface_value,...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 110 0],...
+            'CameraPosition',[1.3 1.1 1.3],...
+            'BackgroundColor', bgcolor,...
+            'Alphamap', alphamap);
+    end
+end
+
+fig.WindowState = 'normal';
+fig.Position = [0 0 width height];
 
 
-
-
-
-
-
-
-
-
-
-
-
+if enable_prints
+    set(gcf,'InvertHardCopy','off') % preserve background color
+    for type = print_types
+        print("prints/"+filename+renderingType+type{1}{2}, type{1}{1}, "-r0")
+    end
+end
 
 
 
