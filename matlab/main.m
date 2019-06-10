@@ -5,6 +5,10 @@ clear all
 clc
 
 addpath('scripts')
+addpath('libraries/WOBJ_toolbox_Version2b')
+addpath('../data/objects')
+addpath('../data/images')
+addpath('../data/cochleas')
 format long
 clc
 clear all
@@ -17,19 +21,43 @@ global filter_padding_value;
 global enable_entropic_sharpening;
 global enable_prints;
 
-sigma = 1.05;
+sigma = 1.25;
 filter_size = 129;
 filter_padding_value =  0.0;
 
 sigmas = [1.0]; %[1.0 2.5 4.1 5.0];
 filter_sizes = [129]; %[5 41 45 101];
-print_types = {{"-dpng", ".png"}};
-% print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
+% print_types = {{"-dpng", ".png"}};
+print_types = {{"-depsc", ".eps"}, {"-dpng", ".png"}};
 enable_prints = true;
 
 % For Wasserstein Barycenter computaions
 enable_entropic_sharpening = true;
 
+% Cochlea files
+
+
+cochlea_folder = "../data/cochleas/";
+cochlea_files = [
+%     "shape05_pca",
+    "shape06_pca",
+    "shape08_pca",
+    "shape09_pca",
+    "shape10_pca",
+    "shape11_pca",
+    "shape12_pca",
+    "shape15_pca",
+    "shape16_pca",
+    "shape18_pca",
+    "shape19_pca",
+    "shape20_pca",
+    "shape21_pca",
+    "shape22_pca",
+    "shape23_pca",
+    "shape24_pca",
+    "shape5876_pca",
+    "shape6317_pca"
+];
 
 %% Wasserstein distance test
 format long g
@@ -1301,9 +1329,10 @@ grid_size = 64;
 grid_shift = 4;
 filename = ['animations/',figure_1_name,'-',figure_2_name,'-transformation-',lower(renderingType),'-grid-',num2str(grid_size),'.gif'];
 color = [linspace(1,1,256)' linspace(0.8,0.8,256)' linspace(0.1,0.1,256)'];
+bgcolor = [1 1 1];
 
-A_data = importdata(['objects/',figure_1_name,'_56.txt']);
-B_data = importdata(['objects/',figure_2_name,'_56.txt']);
+A_data = importdata(['../data/objects/',figure_1_name,'_56.txt']);
+B_data = importdata(['../data/objects/',figure_2_name,'_56.txt']);
 
 orig_A = zeros([grid_size grid_size grid_size]);
 for idx=1:size(A_data,1)
@@ -1342,10 +1371,11 @@ for alpha = alphas
     volshow(img,...
         'Renderer', renderingType,...
         'Colormap', color,...
-            'CameraTarget',[0 0 0],...
-            'CameraViewAngle',30,...
-            'CameraUpVector',[0 110 0],...
-            'CameraPosition',[2 1.5 2]);
+        'BackgroundColor', bgcolor,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 110 0],...
+        'CameraPosition',[2 1.5 2]);
 
     disp(['Alpha = ', num2str(alpha), ', sum = ', num2str(sum(img(:)))])
     drawnow
@@ -1387,11 +1417,10 @@ color = jet(256);
 renderingType = 'VolumeRendering';
 filename = ['animations/teapot-duck-transformation-',lower(renderingType),'-02.gif'];
 alphas = linspace(0,1,5);
-shift = 32;
 
 
-A_data = importdata('objects/bunny.txt');
-B_data = importdata('objects/duck.txt');
+A_data = importdata('../data/objects/bunny.txt');
+B_data = importdata('../data/objects/duck.txt');
 
 orig_A = zeros([32 32 32]);
 for idx=1:size(A_data,1)
@@ -1457,8 +1486,8 @@ close all
 clc
 
 sigma = 2.5;
-enable_prints = true;
-enable_entropic_sharpening = false;
+enable_prints = false;
+enable_entropic_sharpening = true;
 entropic_factor = 0.99;
 renderingType = 'VolumeRendering';
 isosurface_value = 0.1;
@@ -1478,9 +1507,9 @@ for i = 1:num_rows
     num_elements = num_elements + i;
 end
 
-A_data = importdata('objects/teapot_56.txt');
-B_data = importdata('objects/duck_56.txt');
-C_data = importdata('objects/bunny_56.txt');
+A_data = importdata('teapot_56.txt');
+B_data = importdata('duck_56.txt');
+C_data = importdata('bunny_56.txt');
 
 orig_A = zeros([grid_size grid_size grid_size]);
 for idx=1:size(A_data,1)
@@ -1570,8 +1599,819 @@ if enable_prints
 end
 
 
+%% Show a cochlea
+format long g
+close all
+clc
+
+renderingType = 'VolumeRendering';
+resolution = 80;
+shift = 8;
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+
+A = loadVoxelGridFromDistanceField("shape11_pca_64.txt", resolution, shift);
+
+% A = filt3(A_orig);
+% A = A ./ sum(A(:));
+
+
+figure
+volshow(A,...
+    'Renderer', renderingType,...
+    'Colormap', color,...
+    'BackgroundColor', bgcolor,...
+    'CameraTarget',[0 0 0],...
+    'CameraViewAngle',30,...
+    'CameraUpVector',[0 1 0],...
+    'CameraPosition',[2 1.5 2]);
+
+%% Compute Wasserstein distance between 2 cochlears
+format long g
+close all
+clc
+
+renderingType = 'VolumeRendering';
+resolution = 80;
+shift = 8;
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+
+A_orig = loadVoxelGridFromDistanceField('shape05_pca_64.txt', resolution, shift);
+B_orig = loadVoxelGridFromDistanceField('shape08_pca_64.txt', resolution, shift);
+
+A = filt3(A_orig);
+A = A ./ sum(A(:));
+B = filt3(B_orig);
+B = B ./ sum(B(:));
+
+figure
+volshow(A,...
+    'Renderer', renderingType,...
+    'Colormap', color,...
+    'BackgroundColor', bgcolor,...
+    'CameraTarget',[0 0 0],...
+    'CameraViewAngle',30,...
+    'CameraUpVector',[0 1 0],...
+    'CameraPosition',[2 1.5 2]);
+
+figure
+volshow(B,...
+    'Renderer', renderingType,...
+    'Colormap', color,...
+    'BackgroundColor', bgcolor,...
+    'CameraTarget',[0 0 0],...
+    'CameraViewAngle',30,...
+    'CameraUpVector',[0 1 0],...
+    'CameraPosition',[2 1.5 2]);
+
+
+% Wasserstein distance
+[wd,v,w] = Sinkhorn(A,B);
+ed = sqrt(sum(  (A_orig(:) - B_orig(:)).^2  ));
+marg = SinkhornEvalR(v,w,ones(size(v)));
+disp("WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+
+
+%% Compute Wasserstein distance between all paris of cochlears
+format long g
+close all
+clc
+
+renderingType = 'VolumeRendering';
+resolution = 80;
+file_resolution = 64;
+shift = 8;
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+
+cochlea_folder = "../data/cochlears/";
+cochlea_files = [
+    "shape05_pca",
+    "shape06_pca",
+    "shape08_pca",
+    "shape09_pca",
+    "shape10_pca",
+    "shape11_pca",
+    "shape12_pca",
+    "shape15_pca",
+    "shape16_pca",
+    "shape18_pca",
+    "shape19_pca",
+    "shape20_pca",
+    "shape21_pca",
+    "shape22_pca",
+    "shape23_pca",
+    "shape24_pca",
+    "shape5876_pca",
+    "shape6317_pca"
+];
+
+while (length(cochlea_files) > 1)
+    A_file_name = cochlea_files{1};
+    cochlea_files(1) = [];
+    A_orig = loadVoxelGridFromDistanceField(A_file_name+"_"+file_resolution+".txt", resolution, shift);
+    
+    for k = 1:length(cochlea_files)
+        B_file_name = cochlea_files{k};
+        B_orig = loadVoxelGridFromDistanceField(B_file_name+"_"+file_resolution+".txt", resolution, shift);
+        
+        % Preprocess
+        A = filt3(A_orig);
+        A = A ./ sum(A(:));
+        B = filt3(B_orig);
+        B = B ./ sum(B(:));
+
+        % Wasserstein distance
+        [wd,v,w] = Sinkhorn(A,B);
+        ed = sqrt(sum(  (A_orig(:) - B_orig(:)).^2  ));
+        marg = SinkhornEvalR(v,w,ones(size(v)));
+        
+        disp(['("', A_file_name, '", "', B_file_name, '")'])
+        disp("WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+        disp('------------------------------')
+    end
+    disp('------------------------------')
+end
+
+
+%% Compute dissimilarity matrix
+format long g
+close all
+clc
+
+renderingType = 'VolumeRendering';
+resolution = 80;
+file_resolution = 64;
+shift = 8;
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+
+dissimilarity_matrix = [];
+dissimilarity_matrix_ed = [];
+
+for i = 1:length(cochlea_files)
+    A_file_name = cochlea_files{i};
+    A_orig = loadVoxelGridFromDistanceField(A_file_name+"_"+file_resolution+".txt", resolution, shift);
+    row = [];
+    row_ed = [];
+    for j = 1:length(cochlea_files)
+        B_file_name = cochlea_files{j};
+        B_orig = loadVoxelGridFromDistanceField(B_file_name+"_"+file_resolution+".txt", resolution, shift);
+        
+        % Preprocess
+        A = filt3(A_orig);
+        A = A ./ sum(A(:));
+        B = filt3(B_orig);
+        B = B ./ sum(B(:));
+
+        % Wasserstein distance
+        [wd,v,w] = Sinkhorn(A,B);
+        ed = sqrt(sum(  (A_orig(:) - B_orig(:)).^2  ));
+        marg = SinkhornEvalR(v,w,ones(size(v)));
+        
+        row = [row wd];
+        row_ed = [row_ed ed];
+        
+        disp(['("', A_file_name, '", "', B_file_name, '")'])
+        disp("WD = " + wd + ", ED = " + ed + ", sum of marginals = " + sum(marg(:)))
+        disp('------------------------------')
+    end
+    dissimilarity_matrix = [dissimilarity_matrix; row];
+    dissimilarity_matrix_ed = [dissimilarity_matrix_ed; row_ed];
+    disp('------------------------------')
+end
+
+save('dissimilarity_matrix.mat', 'dissimilarity_matrix', 'dissimilarity_matrix_ed');
+
+
+%% Perform MDS on the dissimilarity matrix **unmodified**
+format long g
+close all
+clc
+
+load('dissimilarity_matrix.mat');
+
+% Preprocess labels for plots
+cochlea_labels = cochlea_files;
+for i = 1:size(cochlea_labels)
+    cochlea_labels{i} = cochlea_labels{i}(1:end-4);
+end
+
+% Preprocess WD dissimilarity matrix
+D = dissimilarity_matrix;
+dis_m_mean = mean(diag(D));
+D = D - dis_m_mean;
+
+c = size(D, 1);
+idx = 1:c+1:numel(D);
+v = D(idx);
+v(:) = 0;
+D(idx) = v;
+
+for i = 2:size(D, 1)
+    for j = 1:i-1
+        m = (D(i,j)+D(j,i)) / 2;
+        D(i,j) = m;
+        D(j,i) = m;
+    end
+end
+
+% Perform MDS
+Y = mdscale(D, 2);
+
+x = Y(:,1);
+y = Y(:,2);
+
+% Plot xy scatter plot
+fig1 = figure
+scatter(x,y)
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+dx = 0.1;
+dy = 0.1; % displacement so the text does not overlay the data points
+text(x+dx, y+dy, cochlea_labels)
 
 
 
+% Perform MDS on the ED matrix
+D_ed = dissimilarity_matrix_ed;
+
+% Perform MDS
+Y = mdscale(D_ed, 2);
+
+x = Y(:,1);
+y = -Y(:,2);
+
+% Plot xy scatter plot
+fig2 = figure
+scatter(x,y)
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+dx = 1.2;
+dy = 1.2; % displacement so the text does not overlay the data points
+text(x+dx, y+dy, cochlea_labels);
+
+if enable_prints
+%     set(gcf,'InvertHardCopy','off') % preserve background color
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print(fig1, "prints/"+"cochlea-mds-WD-64-raw"+type{1}{2}, type{1}{1}, "-r400");
+        print(fig2, "prints/"+"cochlea-mds-ED-64-raw"+type{1}{2}, type{1}{1}, "-r400");
+    end
+end
+
+%% Perform MDS on the dissimilarity matrix **heavily manipulated**
+format long g
+close all
+clc
+
+enable_prints = true;
+
+load('dissimilarity_matrix.mat');
+axis_limits = [-0.4 0.8 -0.5 0.4];
+
+% Preprocess labels for plots
+cochlea_labels = cochlea_files;
+for i = 1:size(cochlea_labels)
+    cochlea_labels{i} = cochlea_labels{i}(1:end-4);
+end
+
+% Preprocess WD dissimilarity matrix
+D = dissimilarity_matrix;
+dis_m_mean = mean(diag(D));
+D = D - dis_m_mean;
+
+c = size(D, 1);
+idx = 1:c+1:numel(D);
+v = D(idx);
+v(:) = 0;
+D(idx) = v;
+
+for i = 2:size(D, 1)
+    for j = 1:i-1
+        m = (D(i,j)+D(j,i)) / 2;
+        D(i,j) = m;
+        D(j,i) = m;
+    end
+end
+
+D = D ./ max(D(:));
+
+% Perform MDS
+Y = mdscale(D, 2);
+
+x = Y(:,1);
+y = Y(:,2);
+
+% Plot xy scatter plot
+fig1 = figure;
+scatter(x,y);
+axis(axis_limits);
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+dx = 0.015;
+dy = 0.015; % displacement so the text does not overlay the data points
+text(x+dx, y+dy, cochlea_labels)
 
 
+
+% Perform MDS on the ED matrix
+D_ed = dissimilarity_matrix_ed;
+D_ed = D_ed ./ max(D_ed(:));
+
+% Perform MDS
+Y = mdscale(D_ed, 2);
+
+x = Y(:,1);
+y = -Y(:,2)*2;
+
+% Plot xy scatter plot
+fig2 = figure;
+scatter(x,y);
+axis(axis_limits);
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+dx = 0.015;
+dy = 0.015; % displacement so the text does not overlay the data points
+text(x+dx, y+dy, cochlea_labels);
+
+
+
+% Difference plot
+X = mdscale(D, 2);
+Y = mdscale(D_ed, 2);
+x = X(:,1);
+y = X(:,2);
+u = Y(:,1)-X(:,1);
+v = -Y(:,2)*2-X(:,2);
+
+fig3 = figure;
+hold on
+for i=1:size(D)
+%     ax = plot([X(i,1) Y(i,1)], [X(i,2) -Y(i,2)*2]);
+    ax = quiver(x, y, u, v);
+end
+axis(axis_limits);
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+
+% dx = 0.015;
+% dy = 0.015; % displacement so the text does not overlay the data points
+% text(x+dx, y+dy, cochlea_labels);
+
+
+if enable_prints
+%     set(gcf,'InvertHardCopy','off') % preserve background color
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        print(fig1, "prints/"+"cochlea-mds-WD"+type{1}{2}, type{1}{1}, "-r400");
+        print(fig2, "prints/"+"cochlea-mds-ED"+type{1}{2}, type{1}{1}, "-r400");
+        print(fig3, "prints/"+"cochlea-mds-diff"+type{1}{2}, type{1}{1}, "-r400");
+    end
+end
+
+
+%% Wasserstein Barycenters of two cochleas
+close all
+clc
+
+sigma = 1.25;
+color = jet(256);
+renderingType = 'VolumeRendering';
+filename = ['animations/teapot-duck-transformation-',lower(renderingType),'-02.gif'];
+alphas = linspace(0.0001,0.9999,5);
+resolution = 80;
+shift = 8;
+
+A_data = importdata(cochlea_folder+cochlea_files(6)+"_64.txt");
+B_data = importdata(cochlea_folder+cochlea_files(12)+"_64.txt");
+
+orig_A = zeros([resolution resolution resolution]);
+for idx=1:size(A_data,1)
+    x = A_data(idx,:)+shift;
+    orig_A(x(1), x(2), x(3)) = 1;
+end
+A = orig_A;
+
+orig_B = zeros([resolution resolution resolution]);
+for idx=1:size(B_data,1)
+    x = B_data(idx,:)+shift;
+    orig_B(x(1), x(2), x(3)) = 1;
+end
+B = orig_B;
+
+
+A = filt3(A);
+A = A ./ sum(A(:));
+B = filt3(B);
+B = B ./ sum(B(:));
+
+height = 250;
+width = height * length(alphas)+1;
+
+fig = figure('Position', [0 0 width height]);
+hold on
+n = 0;
+for alpha=alphas
+    barycenter = WassersteinBarycenter(A, B, alpha);
+    img = barycenter;% ./ max(barycenter(:));
+    
+    disp("alpha = "+num2str(alpha)+ ", sum = " + num2str(sum(barycenter(:))))
+    
+    width = 1/length(alphas);
+    p = uipanel(fig, 'Position', [width*n, 0, width, 1], 'BorderType', 'none');
+    
+    volshow(img,...
+        'Parent', p,...
+        'Renderer', renderingType,...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 110 0],...
+        'CameraPosition',[-1.7 1.5 1.7]);
+    n = n + 1;
+end
+
+
+
+%% Save barycenters of toy-data to perform MDS on
+
+
+close all
+clc
+
+sigma = 2.5;
+enable_prints = false;
+enable_entropic_sharpening = true;
+entropic_factor = 0.99;
+renderingType = 'VolumeRendering';
+isosurface_value = 0.1;
+element_height = 120;
+color = jet(256);
+% bgcolor = [0.3 0.75 0.93]; % blue
+bgcolor = [1 1 1]; % white
+alphamap = linspace(0,1,256)';
+alphas = 5;
+num_rows = 5;
+grid_size = 64;
+grid_displace = 4;
+filename = "3-way-barycenter-interpolation-duck-teapot-bunny2-"+renderingType+"-sharpening-"+enable_entropic_sharpening+"-";
+
+num_elements = 0;
+for i = 1:num_rows
+    num_elements = num_elements + i;
+end
+
+A_data = importdata('teapot_56.txt');
+B_data = importdata('duck_56.txt');
+C_data = importdata('bunny_56.txt');
+
+orig_A = zeros([grid_size grid_size grid_size]);
+for idx=1:size(A_data,1)
+    x = A_data(idx,:)+grid_displace;
+    orig_A(x(2), x(3), x(1)) = 1;
+end
+A = orig_A;
+
+orig_B = zeros([grid_size grid_size grid_size]);
+for idx=1:size(B_data,1)
+    x = B_data(idx,:)+grid_displace;
+    orig_B(x(3), x(2), x(1)) = 1;
+end
+orig_B = flip(orig_B,3);
+B = orig_B;
+
+orig_C = zeros([grid_size grid_size grid_size]);
+for idx=1:size(C_data,1)
+    x = C_data(idx,:)+grid_displace;
+    orig_C(x(3), x(1), x(2)) = 1;
+end
+orig_C = flip(orig_C,3);
+C = orig_C;
+
+A = filt3(A);
+A = A ./ sum(A(:));
+B = filt3(B);
+B = B ./ sum(B(:));
+C = filt3(C);
+C = C ./ sum(C(:));
+
+width = element_height * num_elements;
+height = width;
+
+fig = figure('Position', [0 0 width height], 'Color', bgcolor);
+set(gca,'visible','off')
+hold on
+rows = linspace(5,1,num_rows);
+
+fig.WindowState = 'maximized';
+
+barycenters = {}
+
+for i=rows
+    
+    weight_towards_3rd = (length(rows)-i)/(length(rows)-1);
+    alphas = linspace(0,1,i);
+    
+    for j = 1:i
+        alpha = [alphas(j) 1.0-alphas(j)] .* (1.0-weight_towards_3rd);
+        alpha = [alpha weight_towards_3rd];
+        
+        if (renderingType == "VolumeRendering")
+            color = [linspace(alpha(1),alpha(1),256)' linspace(alpha(2),alpha(2),256)' linspace(alpha(3),alpha(3),256)'];
+        end
+        
+        barycenter = WassersteinBarycenterGeneralized({A, B, C}, alpha, entropic_factor);
+        img = barycenter;% ./ sum(barycenter(:));
+        barycenters{end+1} = barycenter;
+        
+        disp(['Sum = ', num2str(sum(img(:)))])
+        
+        w = 1/num_rows;
+        h = 1/num_rows;
+        p = uipanel(fig, 'Position', [w*(j-1)+(num_rows-i)/(num_rows*2), (num_rows-i)/num_rows, w, h], 'BorderType', 'none');
+
+        volshow(img,...
+            'Parent', p,...
+            'Renderer', renderingType,...
+            'Isovalue', isosurface_value,...
+            'Colormap', color,...
+            'CameraTarget',[0 0 0],...
+            'CameraViewAngle',30,...
+            'CameraUpVector',[0 110 0],...
+            'CameraPosition',[1.3 1.1 1.3],...
+            'BackgroundColor', bgcolor,...
+            'Alphamap', alphamap);
+    end
+end
+
+fig.WindowState = 'normal';
+fig.Position = [0 0 width height];
+
+
+%% Compute dissimilarity matrix from toy-data barycenters from above
+format long g
+close all
+clc
+
+% Compute dissimilarity matrices
+dissimilarity_matrix = [];
+
+for i = 1:length(barycenters)
+    row = [];
+    A = barycenters{i};
+    for j = 1:length(barycenters)
+        % Wasserstein distance
+        B = barycenters{j};
+        [wd,v,w] = Sinkhorn(A,B);
+        marg = SinkhornEvalR(v,w,ones(size(v)));
+        
+        row = [row wd];
+        
+%         disp("WD = " + wd + ", sum of marginals = " + sum(marg(:)))
+%         disp('------------------------------')
+    end
+    dissimilarity_matrix = [dissimilarity_matrix; row];
+%     disp('------------------------------')
+    disp(num2str(round(i/length(barycenters)*100)) + "% done...");
+end
+
+%% Do MDS on dissimilarity matrix from toy-data above
+format long g
+close all
+clc
+
+% Preprocess WD dissimilarity matrix
+D = dissimilarity_matrix;
+D = (D+D')./2; % Symmetricize
+D = D - mean(diag(D)); % Subtract the diagonal mean (shift towards 0)
+
+c = size(D, 1);
+idx = 1:c+1:numel(D);
+v = D(idx);
+v(:) = 0;
+D(idx) = v; % Set diagonal to 0
+
+% Perform MDS
+MDS = mdscale(D, 2);
+x = MDS(:,1);
+y = MDS(:,2);
+
+% % Plot xy scatter plot
+% 
+% fig1 = figure;
+% scatter(x,y);
+% axis();
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+% dx = 0.015;
+% dy = 0.015; % displacement so the text does not overlay the data points
+% text(x+dx, y+dy, cochlea_labels)
+
+renderingType = 'VolumeRendering';
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+element_height = 120;
+
+% Plot volume rendering
+
+width = element_height * length(barycenters);
+height = width;
+
+x_shift = 0.2*min(x);
+y_shift = 0.2*min(y);
+
+fig = figure('Position', [0 0 width height], 'Color', bgcolor);
+% grid on
+set(gca,'visible','on')
+set(gca,'xlim', [min(x)+x_shift max(x)])
+set(gca,'ylim', [min(y)+y_shift max(y)])
+hold on
+fig.WindowState = 'maximized';
+
+window_offset = [0.1,0.1,0.8,0.8];
+set(gca,'Position', window_offset);
+
+for i = 1:length(x)
+    w = 0.1;
+    h = 0.1;
+    m = (x(i)+abs(x_shift)-min(x)) / (max(x)-min(x)-x_shift) * window_offset(3)+window_offset(1)-w/2;
+    n = (y(i)+abs(y_shift)-min(y)) / (max(y)-min(y)-y_shift) * window_offset(4)+window_offset(2)-h/2;
+    color = [linspace(m,m,256)' linspace(0,1,256)' linspace(n,n,256)'];
+    p = uipanel(fig, 'Position', [m, n, w, h], 'BorderType', 'none');
+    volshow(barycenters{i},...
+        'Parent', p,...
+        'Renderer', renderingType,...
+        'Isovalue', isosurface_value,...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',30,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[1.3 1.1 1.3],...
+        'BackgroundColor', bgcolor);
+    disp(num2str(round(i/length(x)*100)) + "% done...")
+end
+disp('------------------------')
+
+fig.WindowState = 'normal';
+fig.Position = [0 0 width height];
+
+
+if enable_prints
+    set(gcf,'InvertHardCopy','off') % preserve background color
+    set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+        if (type{1}{2} ~= '.eps')
+            print(fig2, "prints/"+"mds-toy-example-VolumeRendering-"+type{1}{2}, type{1}{1}, "-r0");
+        end
+    end
+end
+
+
+%% Perform MDS on the cochlea dissimilarity matrix nad plot with volume points
+format long g
+close all
+clc
+
+enable_prints = true;
+show_scatter_plot = true;
+file_resolution = 64;
+resolution = 64;
+shift = 0;
+
+
+load('dissimilarity_matrix.mat');
+
+% Preprocess labels for plots
+cochlea_labels = cochlea_files;
+for i = 1:size(cochlea_labels)
+    cochlea_labels{i} = cochlea_labels{i}(1:end-4);
+end
+
+% Preprocess WD dissimilarity matrix
+D = dissimilarity_matrix;
+dis_m_mean = mean(diag(D));
+D = D - dis_m_mean;
+element_height = 120;
+
+c = size(D, 1);
+idx = 1:c+1:numel(D);
+v = D(idx);
+v(:) = 0;
+D(idx) = v;
+
+for i = 2:size(D, 1)
+    for j = 1:i-1
+        m = (D(i,j)+D(j,i)) / 2;
+        D(i,j) = m;
+        D(j,i) = m;
+    end
+end
+
+% D = D ./ max(D(:));
+
+% Perform MDS
+Y = mdscale(D, 2);
+
+x = Y(:,1);
+y = Y(:,2);
+
+if (show_scatter_plot)
+    % Plot xy scatter plot
+    fig1 = figure;
+    scatter(x,y);
+    axis fill;
+    % set(gca, 'XTick', []);
+    % set(gca, 'YTick', []);
+
+    dx = 0.015;
+    dy = 0.015; % displacement so the text does not overlay the data points
+    text(x+dx, y+dy, cochlea_labels)
+end
+
+% Plot volume plot
+width = element_height * length(x);
+height = width;
+
+x_shift = 0.2*min(x);
+y_shift = 0.2*min(y);
+
+camera_settings = {
+    {
+        [0 0 0],...
+        [0 1 0],...
+        [0 0.75 0.75],...
+        55
+    },...
+    {
+        [0 0.2 0],...
+        [0 1 0],...
+        [-0.7 0.7 0.75]*1.2,...
+        55
+    }
+};
+
+for camera_idx = 1:length(camera_settings)
+    camera = camera_settings{camera_idx}
+    fig2 = figure('Position', [0 0 width height], 'Color', bgcolor);
+    set(gca,'visible','on')
+    set(gca,'xlim', [min(x)+x_shift max(x)])
+    set(gca,'ylim', [min(y)+y_shift max(y)])
+    hold on
+    fig2.WindowState = 'maximized';
+
+    window_offset = [0.1,0.1,0.8,0.8];
+    set(gca,'Position', window_offset);
+
+    for i = 2:length(x)
+        % Load and preprocess voxel data
+        A_file_name = cochlea_files{i};
+        A_orig = loadVoxelGridFromDistanceField(A_file_name+"_"+file_resolution+".txt", resolution, shift);
+        A = A_orig;
+        A = filt3(A_orig);
+        A = A ./ sum(A(:));
+
+        w = 0.05;
+        h = 0.1;
+        m = (x(i)+abs(x_shift)-min(x)) / (max(x)-min(x)-x_shift) * window_offset(3)+window_offset(1)-w/2;
+        n = (y(i)+abs(y_shift)-min(y)) / (max(y)-min(y)-y_shift) * window_offset(4)+window_offset(2)-h/2;
+
+        color = [linspace(m,m,256)' linspace(0,1,256)' linspace(n,n,256)'];
+
+        p = uipanel(fig2, 'Position', [m, n, w, h], 'BorderType', 'none');
+        volshow(A,...
+            'Parent', p,...
+            'Renderer', renderingType,...
+            'Isovalue', isosurface_value,...
+            'Colormap', color,...
+            'CameraViewAngle',camera{4},...
+            'CameraTarget',camera{1},...
+            'CameraUpVector',camera{2},...
+            'CameraPosition',camera{3},...
+            'BackgroundColor', bgcolor);
+        disp(num2str(round(i/length(x)*100)) + "% done...")
+    end
+    disp('------------------------')
+
+    fig2.WindowState = 'normal';
+    fig2.Position = [0 0 width height];
+
+
+    if enable_prints
+        set(gcf,'InvertHardCopy','off') % preserve background color
+        set(gcf,'PaperPositionMode','auto')
+        for type = print_types
+            if (type{1}{2} ~= '.eps')
+                print(fig2, "prints/"+"cochlea-mds-VolumeRendering-camera-"+num2str(camera_idx)+"-"+type{1}{2}, type{1}{1}, "-r0");
+            end
+        end
+    end
+
+end
