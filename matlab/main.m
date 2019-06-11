@@ -2112,7 +2112,7 @@ rows = linspace(5,1,num_rows);
 
 fig.WindowState = 'maximized';
 
-barycenters = {}
+barycenters = {};
 
 for i=rows
     
@@ -2182,13 +2182,17 @@ for i = 1:length(barycenters)
     disp(num2str(round(i/length(barycenters)*100)) + "% done...");
 end
 
+toy_matrix = dissimilarity_matrix;
+
 %% Do MDS on dissimilarity matrix from toy-data above
 format long g
 close all
 clc
 
+enable_prints = true;
+
 % Preprocess WD dissimilarity matrix
-D = dissimilarity_matrix;
+D = toy_matrix;
 D = (D+D')./2; % Symmetricize
 D = D - mean(diag(D)); % Subtract the diagonal mean (shift towards 0)
 
@@ -2222,8 +2226,8 @@ element_height = 120;
 
 % Plot volume rendering
 
-width = element_height * length(barycenters);
-height = width;
+width = 1920;
+height = 1080;
 
 x_shift = 0.2*min(x);
 y_shift = 0.2*min(y);
@@ -2244,7 +2248,7 @@ for i = 1:length(x)
     h = 0.1;
     m = (x(i)+abs(x_shift)-min(x)) / (max(x)-min(x)-x_shift) * window_offset(3)+window_offset(1)-w/2;
     n = (y(i)+abs(y_shift)-min(y)) / (max(y)-min(y)-y_shift) * window_offset(4)+window_offset(2)-h/2;
-    color = [linspace(m,m,256)' linspace(0,1,256)' linspace(n,n,256)'];
+    color = [linspace(m,m,256)' linspace((2-m-n)/2,(2-m-n)/2,256)' linspace(n,n,256)'];
     p = uipanel(fig, 'Position', [m, n, w, h], 'BorderType', 'none');
     volshow(barycenters{i},...
         'Parent', p,...
@@ -2263,28 +2267,38 @@ disp('------------------------')
 fig.WindowState = 'normal';
 fig.Position = [0 0 width height];
 
+xlabel("First MDS coordinate")
+ylabel("Second MDS Coordinate")
 
 if enable_prints
     set(gcf,'InvertHardCopy','off') % preserve background color
     set(gcf,'PaperPositionMode','auto')
     for type = print_types
         if (type{1}{2} ~= '.eps')
-            print(fig2, "prints/"+"mds-toy-example-VolumeRendering-"+type{1}{2}, type{1}{1}, "-r0");
+            set(fig, 'visible', 'off');
+            print(fig, "prints/"+"mds-toy-example-VolumeRendering"+type{1}{2}, type{1}{1}, "-r0");
+            set(gca, 'visible', 'off')
+            print(fig, "prints/"+"mds-toy-example-VolumeRendering-wallpaper"+type{1}{2}, type{1}{1}, "-r0");
         end
     end
 end
 
+% close all
 
-%% Perform MDS on the cochlea dissimilarity matrix nad plot with volume points
+%% Perform MDS on the cochlea dissimilarity matrix and plot with volume points
 format long g
 close all
 clc
 
 enable_prints = true;
-show_scatter_plot = true;
+renderingType = "VolumeRendering";
+show_scatter_plot = false;
 file_resolution = 64;
 resolution = 64;
 shift = 0;
+bgcolor = [1 1 1];
+width = 1920;
+height = 1080;
 
 
 load('dissimilarity_matrix.mat');
@@ -2337,8 +2351,6 @@ if (show_scatter_plot)
 end
 
 % Plot volume plot
-width = element_height * length(x);
-height = width;
 
 x_shift = 0.2*min(x);
 y_shift = 0.2*min(y);
@@ -2347,27 +2359,31 @@ camera_settings = {
     {
         [0 0 0],...
         [0 1 0],...
-        [0 0.75 0.75],...
+        [0 1 1],...
         55
     },...
     {
-        [0 0.2 0],...
+        [0 0 0],...
         [0 1 0],...
-        [-0.7 0.7 0.75]*1.2,...
+        [-1 0.2 1],...
         55
     }
 };
 
 for camera_idx = 1:length(camera_settings)
-    camera = camera_settings{camera_idx}
+    camera = camera_settings{camera_idx};
+    camera{3} = 1.2*camera{3}/norm(camera{3});
+    
     fig2 = figure('Position', [0 0 width height], 'Color', bgcolor);
+    xlabel("First MDS coordinate")
+    ylabel("Second MDS coordinate")
     set(gca,'visible','on')
     set(gca,'xlim', [min(x)+x_shift max(x)])
     set(gca,'ylim', [min(y)+y_shift max(y)])
     hold on
     fig2.WindowState = 'maximized';
 
-    window_offset = [0.1,0.1,0.8,0.8];
+    window_offset = [0.05, 0.05, 0.9, 0.9];
     set(gca,'Position', window_offset);
 
     for i = 2:length(x)
@@ -2383,13 +2399,12 @@ for camera_idx = 1:length(camera_settings)
         m = (x(i)+abs(x_shift)-min(x)) / (max(x)-min(x)-x_shift) * window_offset(3)+window_offset(1)-w/2;
         n = (y(i)+abs(y_shift)-min(y)) / (max(y)-min(y)-y_shift) * window_offset(4)+window_offset(2)-h/2;
 
-        color = [linspace(m,m,256)' linspace(0,1,256)' linspace(n,n,256)'];
-
+        color = [linspace(m,m,256)' linspace((2-m-n)/2,(2-m-n)/2,256)' linspace(n,n,256)'];
+        
         p = uipanel(fig2, 'Position', [m, n, w, h], 'BorderType', 'none');
         volshow(A,...
             'Parent', p,...
             'Renderer', renderingType,...
-            'Isovalue', isosurface_value,...
             'Colormap', color,...
             'CameraViewAngle',camera{4},...
             'CameraTarget',camera{1},...
@@ -2402,16 +2417,17 @@ for camera_idx = 1:length(camera_settings)
 
     fig2.WindowState = 'normal';
     fig2.Position = [0 0 width height];
-
-
+    
     if enable_prints
         set(gcf,'InvertHardCopy','off') % preserve background color
-        set(gcf,'PaperPositionMode','auto')
+%         set(gcf,'PaperPositionMode','auto')
         for type = print_types
             if (type{1}{2} ~= '.eps')
-                print(fig2, "prints/"+"cochlea-mds-VolumeRendering-camera-"+num2str(camera_idx)+"-"+type{1}{2}, type{1}{1}, "-r0");
+                set(fig2, 'visible', 'off')
+                print(fig2, "prints/"+"cochlea-mds-VolumeRendering-camera-"+num2str(camera_idx)+"-"+type{1}{2}, type{1}{1}, '-r0');
             end
         end
+        close all
     end
 
 end
