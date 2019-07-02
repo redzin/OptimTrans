@@ -18,8 +18,6 @@ for i = 1:iter
     
     v = maxv(filter(w), 10^-100);
     v = im1 ./ v;
-    
-    
 end
 
 wasserstein_dist = im1 .* log(maxv(v, 10^-100)) + im2 .* log(maxv(w, 10^-100));

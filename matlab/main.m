@@ -1711,8 +1711,8 @@ shift = 8;
 color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
 bgcolor = [1 1 1];
 
-A_orig = loadVoxelGridFromDistanceField('shape05_pca_64.txt', resolution, shift);
-B_orig = loadVoxelGridFromDistanceField('shape08_pca_64.txt', resolution, shift);
+A_orig = loadVoxelGridFromDistanceField('shape10_pca_64.txt', resolution, shift);
+B_orig = loadVoxelGridFromDistanceField('shape11_pca_64.txt', resolution, shift);
 
 A = filt3(A_orig);
 A = A ./ sum(A(:));
@@ -1754,9 +1754,9 @@ clc
 
 sigma = 1.05;
 renderingType = 'VolumeRendering';
-resolution = 144;
-file_resolution = 128;
+file_resolution = 64;
 shift = 8;
+resolution = file_resolution + 2*shift;
 color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
 bgcolor = [1 1 1];
 
@@ -2826,7 +2826,7 @@ sigma = 1.05;
 enable_prints = true;
 renderingType = "VolumeRendering";
 prevent_layering = false;
-coordinate_permutation = [3 1 2];
+coordinate_permutation = [2 1 3];
 show_scatter_plot = false;
 bgcolor = [1 1 1];
 cmap = parula(18);
@@ -2842,7 +2842,7 @@ w = 0.04;
 h = w*width/height*1.4;
 window_offset = [0.07, 0.09, 0.83, 0.83];
 coordinate_labels = ["First MDS Coordinate", "Second MDS Coordinate", "Third MDS Coordinate"];
-cameras = [coordinate_permutation(1)]
+cameras = [1 2 3]
 camera_settings = {
     {
         [0 0 0],...
@@ -3031,6 +3031,657 @@ else
 
     end
 
+end
+
+
+%% Scatter plots of the 3d MDS cochlea analysis
+
+format long g
+close all
+clc
+
+enable_prints = true;
+renderingType = "VolumeRendering";
+coordinate_permutation = [1 2 3];
+width = 1920;
+height = 1080;
+x_shift_factor = 0.18;
+y_shift_factor = 0.22;
+w = 0.04;
+h = w*width/height*1.4;
+window_offset = [0.07, 0.09, 0.92, 0.88];
+coordinate_labels = ["First MDS Coordinate", "Second MDS Coordinate", "Third MDS Coordinate"];
+cameras = [1 2 3]
+camera_settings = {
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [0 0 -1],...
+        55,...
+        0.8
+    },...
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [1 0 -1],...
+        55,...
+        0.8
+    },...
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [-1 1 1],...
+        55,...
+        0.8
+    }
+};
+
+
+load("dissimilarity_matrix_"+file_resolution+".mat");
+
+% Preprocess labels for plots
+cochlea_labels = cochlea_files;
+for i = 1:size(cochlea_labels)
+    cochlea_labels{i} = cochlea_labels{i}(1:end-4);
+end
+
+% Preprocess WD dissimilarity matrix
+D = dissimilarity_matrix;
+dis_m_mean = mean(diag(D));
+D = D - dis_m_mean;
+
+c = size(D, 1);
+idx = 1:c+1:numel(D);
+v = D(idx);
+v(:) = 0;
+D(idx) = v;
+
+for i = 2:size(D, 1)
+    for j = 1:i-1
+        m = (D(i,j)+D(j,i)) / 2;
+        D(i,j) = m;
+        D(j,i) = m;
+    end
+end
+
+% D = D ./ max(D(:));
+
+% Perform MDS
+Y = mdscale(D, 3);
+
+x = Y(:,coordinate_permutation(1));
+y = Y(:,coordinate_permutation(2));
+z = Y(:,coordinate_permutation(3));
+
+
+
+modified_cochlea_labels = cochlea_labels;
+for i = 1:length(cochlea_labels)
+    modified_cochlea_labels{i} = cochlea_labels{i}(6:end);
+end
+
+% Plot xy scatter plot
+
+
+
+fig1 = figure('Position', [0 0 width height], 'Color', bgcolor);
+grid on
+set(gca,'FontSize',20)
+xlabel(coordinate_labels(coordinate_permutation(1)))
+ylabel(coordinate_labels(coordinate_permutation(2)))
+set(gca,'visible','on')
+set(gca,'xlim', [min(x)+x_shift max(x)])
+set(gca,'ylim', [min(y)+y_shift max(y)])
+
+hold on
+
+set(gca,'Position', window_offset);
+
+
+
+
+scatter(x,y);
+range_x = max(x)-min(x);
+range_y = max(y)-min(y);
+axis([...
+    min(x)-0.05*range_x...
+    max(x)+0.1*range_x...
+    min(y)-0.1*range_y...
+    max(y)+0.1*range_y...
+]);
+% set(gca, 'XTick', []);
+% set(gca, 'YTick', []);
+
+dx = range_x * 0.005;
+dy = range_y * 0.0;
+text(x+dx, y+dy, modified_cochlea_labels,'FontSize',14 )
+
+
+
+
+
+
+if enable_prints
+    set(gcf,'InvertHardCopy','off') % preserve background color
+%         set(gcf,'PaperPositionMode','auto')
+    for type = print_types
+%             if (type{1}{2} ~= '.eps')
+            set(fig1, 'visible', 'off')
+            filename = "prints/"+"cochlea-mds-ScatterPlot-3d-"+file_resolution+"-permute-"+num2str(coordinate_permutation(1))+num2str(coordinate_permutation(2));
+            filename = filename + type{1}{2};
+            print(fig1, filename, type{1}{1}, '-r0');
+            set(fig1, 'visible', 'on')
+%             end
+    end
+end
+
+
+%% Simple Gaussian figure for illustritative purposes
+
+format long g
+close all
+clc
+
+
+
+si = 1;
+
+[X,Y] = meshgrid(linspace(-2,2,50),linspace(-2,2,50));
+Z = 1/(2*pi*si) * exp(-(X.^2+Y.^2)/(2*si^2));
+fig1 = figure
+s = surf(X,Y,Z)
+ylabel("y")
+xlabel("x")
+zlabel("G(x,y), \sigma = 1")
+% s.EdgeColor = 'none';
+% s.FaceAlpha = 1;
+% axis([-2 2 -2 2 -2 2])
+% 
+filename = "prints/"+"gaussian-demonstration-surface";
+print(fig1, filename+".eps", '-depsc', '-r0');
+print(fig1, filename+".png", '-dpng', '-r0');
+
+
+
+
+
+
+S = linspace(0.5,2,4)
+
+x = linspace(-5,5,1000);
+
+fig2 = figure
+hold on
+l = {};
+for i = 1:length(S)
+    y = 1/(2*pi*si) * exp(-(x.^2)/(2*S(i)^2))
+    plot(x,y)
+    l{i} = "\sigma = "+S(i);
+    % s.EdgeColor = 'none';
+    % s.FaceAlpha = 1;
+    % axis([-2 2 -2 2 -2 2])
+
+end
+xlabel("x")
+ylabel("G(x)")
+legend(l,'Location','nw')
+
+filename = "prints/"+"gaussian-demonstration-line";
+print(fig2, filename+".eps", '-depsc', '-r0');
+print(fig2, filename+".png", '-dpng', '-r0');
+
+
+
+%% Show cochleas using signed-distance exponential pre-processing
+
+
+format long g
+close all
+clc
+
+alpha = 30;
+beta = exp(-alpha);
+
+enable_prints = true;
+renderingType = 'Isosurface';
+isoColor = [0.8 0.2 1];
+isoValue = 1;
+file_resolution = 64;
+shift = 8;
+resolution = file_resolution+2*shift;
+color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+bgcolor = [1 1 1];
+CameraViewAngle = 55;
+CameraTarget = [0 0 0];
+CameraUpVector = [0 -1 0];
+CameraPosition = [0.2 -0.2 1];
+CameraPosition = CameraPosition./norm(CameraPosition)*1;
+width = 400;
+height = 400;
+
+shapes = {
+    "05",...
+    "06",...
+    "08",...
+    "09",...
+    "10",...
+    "11",...
+    "12",...
+    "15",...
+    "16",...
+    "18",...
+    "19",...
+    "20",...
+    "21",...
+    "22",...
+    "23",...
+    "24",...
+    "5876",...
+    "6317"...
+};
+
+
+for shape = shapes
+    
+    print_position = [0 0 0 0];
+    is_printing_on = true;
+    while (print_position(3) ~= width && print_position(4) ~= height && is_printing_on)
+        
+        is_printing_on = enable_prints;
+        
+        shape_number = shape{1};
+
+        A = [];
+        A = loadVoxelGridFromDistanceFieldExp("shape"+shape_number+"_pca_"+num2str(file_resolution)+"_signed_distance.txt", resolution, shift, alpha, beta);
+        sum_A = sum(A(:));
+        A = A ./ sum_A;
+        isoValueRatio = (isoValue / sum_A) / (max(A(:)) - min(A(:)));
+        
+        fig = figure('Position', [0 0 width height], 'Color', [1 1 1]);
+        
+        volshow(A,...
+            'Renderer', renderingType,...
+            'IsosurfaceColor', isoColor,...
+            'Isovalue', isoValueRatio,...
+            'BackgroundColor', bgcolor,...
+            'Colormap', color,...
+            'CameraViewAngle',CameraViewAngle,...
+            'CameraTarget',CameraTarget,...
+            'CameraUpVector',CameraUpVector,...
+            'CameraPosition',CameraPosition);
+
+        if enable_prints
+%             set(gcf,'InvertHardCopy','off') % preserve background color
+            set(fig,'PaperPositionMode','auto')
+            set(fig, 'Position', [0 0 width height])
+            set(fig, 'visible', 'off')
+            for type = print_types
+                if (type{1}{2} ~= '.eps')
+                    set(fig, 'Position', [0 0 width height])
+                    filename = "cochlea-"+num2str(file_resolution);
+                    filename = filename + "-exponential";
+                    filename = filename +"-shape_"+num2str(shape_number);
+                    filename = filename + "-alpha-"+num2str(alpha);
+                    print(fig, "prints/"+filename+type{1}{2}, type{1}{1}, '-r0');
+                    print_position = get(fig, 'Position');
+                end
+            end
+            close all;
+        end
+    end
+    if enable_prints
+        disp('Finished printing "'+filename+'"');
+    end
+end
+
+%% Compute Wasserstein distance between all cochleas using exponential preprocessing
+
+format long g
+close all
+clc
+
+alphas = [1.1 1.5 2 3 4 5 10 15 20 30 50];
+
+
+for alpha = alphas
+    
+    disp('------------------------------')
+    disp("alpha = "+num2str(alpha))
+    disp('------------------------------')
+    
+    beta = exp(-alpha);
+    renderingType = 'VolumeRendering';
+    file_resolution = 64;
+    shift = 8;
+    resolution = file_resolution + 2*shift;
+    color = [linspace(0.8,0.8,256)', linspace(0,0.2,256)', linspace(0,1,256)'];
+    bgcolor = [1 1 1];
+
+    cochlea_folder = "../data/cochlears/";
+    cochlea_files = [
+        "shape05_pca",
+        "shape06_pca",
+        "shape08_pca",
+        "shape09_pca",
+        "shape10_pca",
+        "shape11_pca",
+        "shape12_pca",
+        "shape15_pca",
+        "shape16_pca",
+        "shape18_pca",
+        "shape19_pca",
+        "shape20_pca",
+        "shape21_pca",
+        "shape22_pca",
+        "shape23_pca",
+        "shape24_pca",
+        "shape5876_pca",
+        "shape6317_pca"
+    ];
+
+    dissimilarity_matrix = [];
+    marginals = [];
+
+    for i = 1:length(cochlea_files)
+        A_file_name = cochlea_files{i};
+        A_orig = loadVoxelGridFromDistanceFieldExp(A_file_name+"_"+file_resolution+"_signed_distance.txt", resolution, shift, alpha, beta);
+        A = A_orig ./ sum(A_orig(:));
+        row = [];
+        row_marginals = [];
+        for j = 1:length(cochlea_files)
+            B_file_name = cochlea_files{j};
+            B_orig = loadVoxelGridFromDistanceFieldExp(B_file_name+"_"+file_resolution+"_signed_distance.txt", resolution, shift, alpha, beta);
+            B = B_orig ./ sum(B_orig(:));
+
+            % Wasserstein distance
+            [wd,v,w] = Sinkhorn(A,B);
+            marg = SinkhornEvalR(v,w,ones(size(v)));
+
+            row = [row wd];
+            row_marginals = [row_marginals sum(marg(:))];
+            
+            disp(['("', A_file_name(6:end-4), '", "', B_file_name(6:end-4), '")'] + ", WD = " + wd + ", sum of marginals = " + sum(marg(:)))
+        end
+        dissimilarity_matrix = [dissimilarity_matrix; row];
+        marginals = [marginals; row_marginals];
+    end
+
+    save("dissimilarity_matrix_"+file_resolution+"_exp_alpha"+num2str(alpha)+".mat", 'dissimilarity_matrix', 'marginals');
+
+    dissimilarity_matrix
+    marginals
+    
+    disp('------------------------------')
+end
+
+
+%% Plot mass loss as function of alpha
+
+
+alphas = [1.1 1.5 2 3 4 5 10 15 20 30 50];
+
+enable_prints = true;
+file_resolution = 64;
+width = 500;
+height = 500;
+
+mass_loss = [];
+for alpha = alphas
+    
+   load("dissimilarity_matrix_"+file_resolution+"_exp_alpha"+num2str(alpha)+".mat");
+   mass_loss = [mass_loss length(marginals(:))-sum(marginals(:))];
+    
+end
+mass_loss
+
+fig = figure
+plot(alphas,mass_loss,'b.-')
+axis tight
+xlabel("\alpha")
+ylabel("Mass loss")
+
+
+if enable_prints
+    set(fig,'PaperPositionMode','auto')
+    set(fig, 'Position', [0 0 width height])
+    set(fig, 'visible', 'off')
+    for type = print_types
+        set(fig, 'Position', [0 0 width height])
+        filename = "cochlea-mass-loss-vs-alpha";
+        print(fig, "prints/"+filename+type{1}{2}, type{1}{1}, '-r0');
+    end
+    set(fig, 'visible', 'on')
+end
+
+
+%% 3d MDS volume plot using exponential preprocessing
+
+format long g
+close all
+clc
+
+alphas = [1.1 1.5 2 3 4 5 10 15 20 30 50];
+enable_prints = true;
+renderingType = "Isosurface";
+isoValue = 1;
+prevent_layering = false;
+coordinate_permutation = [1 2 3];
+show_scatter_plot = false;
+bgcolor = [1 1 1];
+cmap = parula(18);
+% cmap = [linspace(0.5,1,18)' linspace(0.2,0.8,18)' linspace(1,0.2,18)'];
+file_resolution = 64;
+shift = 8;
+resolution = file_resolution + 2*shift;
+width = 1920;
+height = 1080;
+x_shift_factor = 0.18;
+y_shift_factor = 0.22;
+w = 0.06;
+h = w*width/height*1.4;
+window_offset = [0.07, 0.09, 0.83, 0.83];
+coordinate_labels = ["First MDS Coordinate", "Second MDS Coordinate", "Third MDS Coordinate"];
+cameras = [4];
+camera_settings = {
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [0 0 -1],...
+        55,...
+        0.8
+    },...
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [1 0 -1],...
+        55,...
+        0.8
+    },...
+    {
+        [0 0 0],...
+        [0 -1 0],...
+        [-1 1 1],...
+        55,...
+        0.8
+    },...
+    {
+        [0 0 0],...
+        [0.2 -1 0],...
+        [0 -0.4 1],...
+        55,...
+        1
+    }
+};
+
+for alpha = alphas
+
+    beta = exp(-alpha);
+
+
+    load("dissimilarity_matrix_"+file_resolution+"_exp_alpha"+num2str(alpha)+".mat");
+
+    % Preprocess labels for plots
+    cochlea_labels = cochlea_files;
+    for i = 1:size(cochlea_labels)
+        cochlea_labels{i} = cochlea_labels{i}(1:end-4);
+    end
+
+    % Preprocess WD dissimilarity matrix
+    D = dissimilarity_matrix;
+    dis_m_mean = mean(diag(D));
+    D = D - dis_m_mean;
+
+    c = size(D, 1);
+    idx = 1:c+1:numel(D);
+    v = D(idx);
+    v(:) = 0;
+    D(idx) = v;
+
+    for i = 2:size(D, 1)
+        for j = 1:i-1
+            m = (D(i,j)+D(j,i)) / 2;
+            D(i,j) = m;
+            D(j,i) = m;
+        end
+    end
+
+    % D = D ./ max(D(:));
+
+    % Perform MDS
+    Y = mdscale(D, 3);
+
+    x = Y(:,coordinate_permutation(1));
+    y = Y(:,coordinate_permutation(2));
+    z = Y(:,coordinate_permutation(3));
+
+    if (show_scatter_plot)
+        % Plot xy scatter plot
+        fig1 = figure;
+        scatter(x,y);
+        axis fill;
+        % set(gca, 'XTick', []);
+        % set(gca, 'YTick', []);
+
+        dx = 0.015;
+        dy = 0.015; % displacement so the text does not overlay the data points
+        text(x+dx, y+dy, cochlea_labels)
+    else
+
+        % Plot volume plot
+
+        x_shift = x_shift_factor*min(x);
+        y_shift = y_shift_factor*min(y);
+
+        for camera_idx = cameras
+            camera = camera_settings{camera_idx};
+            camera{3} = camera{5}*camera{3}/norm(camera{3});
+
+            fig2 = figure('Position', [0 0 width height], 'Color', bgcolor);
+            set(gca,'FontSize',20)
+            xlabel(coordinate_labels(coordinate_permutation(1)))
+            ylabel(coordinate_labels(coordinate_permutation(2)))
+            set(gca,'visible','on')
+            set(gca,'xlim', [min(x)+x_shift max(x)])
+            set(gca,'ylim', [min(y)+y_shift max(y)])
+
+            hold on
+            fig2.WindowState = 'maximized';
+
+            colormap(cmap);
+            c = colorbar;
+            set(c,'FontSize',20)
+            ylabel(c, coordinate_labels(coordinate_permutation(3)))
+            c.Position = [0.93 0.1 0.01 0.8];
+            c.Limits = [min(z) max(z)];
+            c.Ticks = linspace(min(z),max(z),7);
+            caxis([min(z) max(z)]);
+            L=cellfun(@(x)sprintf('%1.1f',x),num2cell(get(c,'xtick')),'Un',0);
+            set(c,'xticklabel',L)
+
+            set(gca,'Position', window_offset);
+            taken_positions = [];
+            for i = 1:length(x)
+        %         i = length(x)+1-i;
+                % Load and preprocess voxel data
+                A_file_name = cochlea_files{i};
+                A = loadVoxelGridFromDistanceFieldExp(A_file_name+"_"+num2str(file_resolution)+"_signed_distance.txt", resolution, shift, alpha, beta);
+                sum_A = sum(A(:));
+                A = A ./ sum_A;
+                isoValueRatio = (isoValue / sum_A) / (max(A(:)) - min(A(:)));
+
+                m = (x(i)+abs(x_shift)-min(x)) / (max(x)-min(x)-x_shift) * window_offset(3)+window_offset(1)-w/2;
+                n = (y(i)+abs(y_shift)-min(y)) / (max(y)-min(y)-y_shift) * window_offset(4)+window_offset(2)-h/2;
+
+                color = repmat(cmap(sort(z) == z(i),:),256,1);
+                isoColor = cmap(sort(z) == z(i),:);
+
+                if length(taken_positions) < 1 || ~prevent_layering
+                    position_taken = false;
+                else
+                    position_taken = false;
+                    position_taken = sum(taken_positions(...
+                        and(...
+                            abs(taken_positions(:,1)-repmat(m,length(taken_positions(:,1)),1)) < w,...
+                            abs(taken_positions(:,2)-repmat(n,length(taken_positions(:,2)),1)) < h...
+                        )...
+                    )) > 0;
+                end
+
+                if ~position_taken
+                    p = [];
+                    p = uipanel(fig2, 'Position', [m, n, w, h], 'BorderType', 'none', 'ShadowColor', [0 1 0]);
+                    volshow(A,...
+                        'Parent', p,...
+                        'Renderer', renderingType,...
+                        'Isovalue', isoValueRatio,...
+                        'IsosurfaceColor', isoColor,...
+                        'Colormap', color,...
+                        'CameraViewAngle',camera{4},...
+                        'CameraTarget',camera{1},...
+                        'CameraUpVector',camera{2},...
+                        'CameraPosition',camera{3},...
+                        'BackgroundColor', bgcolor,...
+                        'Alphamap', linspace(0,1,256)'...
+                    );
+                    t = cochlea_labels(i);
+                    t = t{1}(6:end);
+                    lw = 0.005*length(t);
+                    lh = 0.015;
+                    dx = w-lw;
+                    dy = h-lh;
+                    label = uicontrol(fig2, 'Style', 'text', 'String',t);
+                    label.Units = 'normalized';
+                    label.BackgroundColor = bgcolor;
+                    label.FontSize = 10;
+                    label.Position = [m+dx n+dy lw lh];
+                    taken_positions = [taken_positions; [m, n, w, h]];
+                end
+                disp(num2str(round(i/length(x)*100)) + "% done...")
+            end
+            disp('------------------------')
+
+            fig2.WindowState = 'normal';
+            fig2.Position = [0 0 width height];
+
+            if enable_prints
+                set(gcf,'InvertHardCopy','off') % preserve background color
+        %         set(gcf,'PaperPositionMode','auto')
+                for type = print_types
+                    if (type{1}{2} ~= '.eps')
+                        set(fig2, 'visible', 'off')
+                        filename = "prints/"+"cochlea-mds-expIsosurface-3d-"+file_resolution+"-permute-"+num2str(coordinate_permutation(1))+num2str(coordinate_permutation(2))+num2str(coordinate_permutation(3))+"-camera-"+num2str(camera_idx);
+                        filename = filename + "-alpha-"+num2str(alpha);
+                        if ~prevent_layering
+                            filename = filename + "-layering";
+                        end
+                        filename = filename + type{1}{2};
+                        print(fig2, filename, type{1}{1}, '-r0');
+                        set(fig2, 'visible', 'on')
+                    end
+                end
+            end
+        end
+    end
 end
 
 
