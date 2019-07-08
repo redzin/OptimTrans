@@ -2,7 +2,7 @@ function voxels = loadVoxelGridFromDistanceField(filename, resolution, shift, al
 
 data = importdata(filename);
 voxels = zeros([resolution resolution resolution]);
-voxels(:,:,:) = beta;
+voxels(:,:,:) = exp(-alpha-beta);
 
 
 for idx=1:size(data,1)
@@ -14,9 +14,9 @@ for idx=1:size(data,1)
     elseif d < -alpha
         d = -alpha;
     end
-    P = exp(-d);
+    P = exp(-d-beta);
     
-    if d < 1.1
-        voxels(shift+x(1), shift+x(2), shift+x(3)) = P;
-    end
+    voxels(shift+x(1), shift+x(2), shift+x(3)) = P;
+    
 end
+
