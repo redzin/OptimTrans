@@ -9,7 +9,7 @@ function im_out = WassersteinBarycenterGeneralized(imgs, alpha, entropic_factor)
     end
 
     iter = 50;
-    lower_limit = 10^-300;
+    lower_limit = 10^-100;
 %     epsilon = 10^-15;
     
     alpha = alpha ./ sum(alpha(:));
@@ -61,7 +61,6 @@ function im_out = WassersteinBarycenterGeneralized(imgs, alpha, entropic_factor)
 %             break;
 %         end
         if (isnan(sum(im_out(:))))
-            j
             im_out = im_out_prev;
             break;
         end

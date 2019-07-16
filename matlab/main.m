@@ -18,8 +18,12 @@ global filter_padding_value;
 global enable_entropic_sharpening;
 global enable_prints;
 global sinkhorn_iterations;
+global sinkhorn_eps;
+global preprocess_sigma;
 
-sinkhorn_iterations = 50;
+sinkhorn_iterations = 250;
+sinkhorn_eps = 0.01;
+preprocess_sigma = 1.05;
 sigma = 1.05;
 filter_size = 129;
 filter_padding_value =  0.0;
@@ -299,6 +303,9 @@ imagesc([dist1 dist2])
 
 format long g
 
+
+enable_prints = false
+sigma = 2.5;
 dist1 = make_dist(im2double(rgb2gray(imread('images/smile_s.png'))));
 dist2 = make_dist(im2double(rgb2gray(imread('images/dots_s.png'))));
 
@@ -3858,6 +3865,1049 @@ if enable_prints
     end
     set(fig, 'visible', 'on')
 end
+
+
+%% Particle flow 3d setup
+close all
+clc
+
+resolution = 128;
+shift = 16;
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+n = 20;
+
+A = zeros(resolution, resolution, resolution);
+B = zeros(resolution, resolution, resolution);
+
+A_ones = shift+round(rand(n,3)*(resolution-1-2*shift))+1;
+B_ones = shift+round(rand(n,3)*(resolution-1-2*shift))+1;
+
+for i = 1:n
+    A(A_ones(i,1),A_ones(i,2),A_ones(i,3)) = 1;
+    B(B_ones(i,1),B_ones(i,2),B_ones(i,3)) = 1;
+end
+
+fig = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+volshow(A,...
+        'Renderer', 'VolumeRendering',...
+        'IsoValue', 1,...
+        'IsosurfaceColor', [0 0 0],...
+        'BackgroundColor', bgcolor,...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',55,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]/2);
+
+fig = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+volshow(B,...
+        'Renderer', 'VolumeRendering',...
+        'IsoValue', 1,...
+        'IsosurfaceColor', [0 0 0],...
+        'BackgroundColor', bgcolor,...
+        'Colormap', color,...
+        'CameraTarget',[0 0 0],...
+        'CameraViewAngle',55,...
+        'CameraUpVector',[0 1 0],...
+        'CameraPosition',[2 1.5 2]/2);
+
+%% Particle flow 3d animation #1
+close all
+clc
+format long
+
+enable_prints = false;
+print_type = "snapshots" % snapshots or gif
+sinkhorn_iterations = 1000;
+sinkhorn_eps = 0.1;
+sigma = 10.00;
+preprocess_sigma = 1.0;
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+pcBColor = [0.2 0.5 1.0];
+pcFColor = [0.8 0.2 1.0];
+maxMarkerSize = 120;
+minMarkerSize = 5;
+snapshot_time_steps = linspace(0,1,6);
+gif_time_steps = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+framerate = 60;
+gif_filename = "animations/particle-sim-3d-fps-"+framerate+"-resolution-"+resolution+"-n-"+n+".gif";
+snapshot_filename = "prints/particle-sim-3d-resolution-"+resolution+"-n-"+n;
+
+A_f = filt3(A);
+A_f = A_f ./ sum(A_f(:));
+
+B_f = filt3(B);
+B_f = B_f ./ sum(B_f(:));
+
+[wd,v,w] = Sinkhorn(A_f,B_f);
+disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+A_targets = [];
+Bs = B;
+for i = 1:n
+    p = zeros(size(v));
+    p(A_ones(i,1), A_ones(i,2), A_ones(i,3)) = 1;
+    
+    margA = SinkhornEvalL(v,w,p);
+    margAB = margA .* Bs;
+    
+    [x,y,z] = ind2sub(size(margAB),find(margAB == max(margAB(:))));
+    if length([x,y,z]) < 4
+        Bs(x,y,z) = 0;
+    else
+        [x,y,z] = ind2sub(size(Bs),find(Bs > 0));
+    end
+    A_targets = [A_targets; x y z];
+end
+
+if enable_prints && strcmp(print_type, "gif")
+    disp("---------------------------------")
+    disp("Producing gif...")
+end
+
+k = 1;
+fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+% set(gca,'Position', [0.04 -0.04 0.99 0.99]);
+if strcmp(print_type, "snapshots")
+    time_steps = snapshot_time_steps;
+elseif strcmp(print_type, "gif")
+    time_steps = gif_time_steps;
+end
+for t = time_steps
+    AB_t = zeros(resolution, resolution, resolution);
+    interp_points = A_ones + (A_targets - A_ones)*t;
+    
+    camP = [1 1 0.75]*128;
+    depth_scale = sqrt(sum((interp_points - camP).^2')')/norm(camP);
+    color = repmat(pcBColor,length(depth_scale),1).*depth_scale + repmat(pcFColor,length(depth_scale),1).*(1-depth_scale);
+    mSize = minMarkerSize*depth_scale + maxMarkerSize*(1-depth_scale);
+    for i = 1:n
+        scatter3(interp_points(i,1), interp_points(i,2), interp_points(i,3),mSize(i),'MarkerFaceColor',color(i,:), 'MarkerEdgeColor',[1 1 1])
+        set(gca,'Position', [0.04 -0.04 0.99 0.99]);
+        hold on
+        if strcmp(print_type, "snapshots")
+            dx = -5;
+            dy = -2;
+            dz = 0;
+            text(interp_points(i,1)+dx, interp_points(i,2)+dy, interp_points(i,3)+dz,num2str(i))
+        end
+    end
+    hold off
+    set(gca,'color','w');
+    set(gcf,'color','w');
+    set(gca, 'XColor', [0.15 0.15 0.15], 'YColor', [0.15 0.15 0.15], 'ZColor', [0.15 0.15 0.15])
+    axis([0 resolution 0 resolution 0 resolution])
+    xlabel('x')
+    ylabel('y')
+    zlabel('z')
+    campos(camP)
+    camtarget([0 0 0])
+    camup([0 0 1])
+    camva(55)
+    drawnow
+    
+    
+    if enable_prints && strcmp(print_type, "snapshots")
+        set(fig_t,'PaperPositionMode','auto')
+        set(fig_t, 'Position', [0 0 width height])
+        set(fig_t, 'visible', 'off')
+        for type = print_types
+            set(fig_t, 'Position', [0 0 width height])
+            filename = snapshot_filename;
+            t_idx = find(time_steps == t);
+            filename = filename + "-t-"+t_idx+"-of-"+length(time_steps);
+            print(fig_t, filename+type{1}{2}, type{1}{1}, '-r0');
+        end
+        set(fig_t, 'visible', 'on')
+    end
+    
+    if enable_prints && strcmp(print_type, "gif")
+        % Write to gif
+        frame = getframe(fig_t);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if k == 1
+            imwrite(imind,cm,gif_filename,'gif', 'Loopcount', inf, 'DelayTime', 1/framerate); 
+        else 
+            imwrite(imind,cm,gif_filename,'gif','WriteMode','append', 'DelayTime', 1/framerate);
+        end
+        if mod(k,10) == 0
+            disp([num2str(round(100 * k / length(time_steps))), '%...'])
+        end
+
+        k = k+1;
+    end
+end
+if enable_prints && strcmp(print_type, "gif")
+    disp("Finished producing gif animation.")
+end
+
+
+%% Particle flow 2d setup
+
+close all
+clc
+format long
+
+resolution = 128;
+shift = 16;
+width = 600;
+height = 600;
+bgcolor = [1 1 1];
+n = 200;
+
+
+A = zeros(resolution, resolution);
+B = zeros(resolution, resolution);
+
+A_ones = shift+round(rand(n,2)*(resolution-1-2*shift))+1;
+B_ones = shift+round(rand(n,2)*(resolution-1-2*shift))+1;
+
+for i = 1:n
+    A(A_ones(i,1),A_ones(i,2)) = 1;
+    B(B_ones(i,1),B_ones(i,2)) = 1;
+end
+
+fig = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+grid on
+hold on
+scatter(A_ones(:,1), A_ones(:,2),'.b')
+scatter(B_ones(:,1), B_ones(:,2),'.r')
+axis([0 resolution 0 resolution])
+xlabel("x")
+ylabel("y")
+
+%% Save the 2d setup
+
+save("points-2d-resolution-"+resolution+"-n-"+n, "A","B","A_ones","B_ones");
+
+%% Load the 2d setup
+clc
+
+resolution = 128;
+n = 20;
+
+load("points-2d-resolution-"+resolution+"-n-"+n);
+
+%% Particle flow #2 line pairs 
+clc
+close all
+format long
+
+
+enable_prints = true;
+sinkhorn_iterations = 10000;
+sinkhorn_eps = 0.01;
+sigma = 10.0;
+preprocess_sigma = 5.0;
+filter_size = 255;
+flow_type = "single" % single, single_unique
+width = 600;
+height = 600;
+bgcolor = [1 1 1];
+filename = "prints/particle-sim-2d-lines-resolution-"+resolution+"-n-"+n;
+
+if strcmp(flow_type, "single")
+    filename = filename + "-single";
+end
+
+A_f = filt(A);
+A_f = A_f ./ sum(A_f(:));
+
+B_f = filt(B);
+B_f = B_f ./ sum(B_f(:));
+
+[wd,v,w] = Sinkhorn(A_f,B_f);
+disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+A_targets = [];
+Bs = B;
+for i = 1:n
+    p = zeros(size(v));
+    p(A_ones(i,1), A_ones(i,2)) = 1;
+    margA = SinkhornEvalL(v,w,p);
+    margAB = margA .* Bs;
+    
+    [x,y] = ind2sub(size(margAB),find(margAB == max(margAB(:))));
+    if strcmp(flow_type, "single_unique")
+        Bs(x,y) = 0;
+    end
+    A_targets = [A_targets; x y];
+end
+
+fig = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+grid on
+hold on
+for i = 1:n
+    plot([A_ones(i,1) A_targets(i,1)], [A_ones(i,2) A_targets(i,2)], 'Marker', 'none', 'LineWidth', 0.1, 'Color', [0.6 0.6 0.6])
+end
+scatter(A_ones(:,1), A_ones(:,2),20,'filled','MarkerFaceColor', [0.8 0.2 1], 'MarkerEdgeColor', [0.8 0.2 1])
+scatter(B_ones(:,1), B_ones(:,2),20,'filled','MarkerFaceColor', [0.2 0.2 1], 'MarkerEdgeColor', [0.2 0.2 1])
+axis([0 resolution 0 resolution])
+xlabel("x")
+ylabel("y")
+h(1) = plot(NaN,NaN,'.','Color',[0.8 0.2 1]);
+h(2) = plot(NaN,NaN,'.','Color',[0.2 0.2 1]);
+legend(h, 'A','B');
+
+if enable_prints
+    set(fig,'PaperPositionMode','auto')
+    set(fig, 'Position', [0 0 width height])
+    set(fig, 'visible', 'off')
+    for type = print_types
+        set(fig, 'Position', [0 0 width height])
+        print(fig, filename+type{1}{2}, type{1}{1}, '-r0');
+    end
+    set(fig, 'visible', 'on')
+end
+
+
+
+
+%% Particle flow #2 animation 
+close all
+clc
+format long
+
+
+enable_prints = false;
+sinkhorn_iterations = 10000;
+sinkhorn_eps = 0.01;
+sigma = 5.0;
+preprocess_sigma = 5.0;
+filter_size = 255
+print_type = "snapshots" % snapshots or gif
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+pcBColor = [0.2 0.5 1.0];
+pcFColor = [0.8 0.2 1.0];
+maxMarkerSize = 120;
+minMarkerSize = 5;
+snapshot_time_steps = linspace(0,1,6);
+gif_time_steps = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+framerate = 60;
+gif_filename = "animations/particle-sim-2d-fps-"+framerate+"-resolution-"+resolution+"-n-"+n+".gif";
+snapshot_filename = "prints/particle-sim-2d-resolution-"+resolution+"-n-"+n;
+
+
+A_f = filt(A);
+A_f = A_f ./ sum(A_f(:));
+
+B_f = filt(B);
+B_f = B_f ./ sum(B_f(:));
+
+[wd,v,w] = Sinkhorn(A_f,B_f);
+disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+A_targets = [];
+Bs = B;
+for i = 1:n
+    p = zeros(size(v));
+    p(A_ones(i,1), A_ones(i,2)) = 1;
+    margA = SinkhornEvalL(v,w,p);
+    margAB = margA .* Bs;
+    
+    [x,y] = ind2sub(size(margAB),find(margAB == max(margAB(:))));
+    Bs(x,y) = 0;
+    A_targets = [A_targets; x y];
+end
+
+
+if enable_prints && strcmp(print_type, "gif")
+    disp("---------------------------------")
+    disp("Producing gif...")
+end
+
+k = 1;
+fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+set(gca,'Position', [0.1 0.1 0.8 0.8]);
+if strcmp(print_type, "snapshots")
+    time_steps = snapshot_time_steps;
+elseif strcmp(print_type, "gif")
+    time_steps = gif_time_steps;
+end
+for t = time_steps
+    AB_t = zeros(resolution, resolution, resolution);
+    interp_points = A_ones + (A_targets - A_ones)*t;
+    
+    for i = 1:n
+        scatter(interp_points(i,1), interp_points(i,2),50,'MarkerFaceColor',[0.8 0.2 1.0], 'MarkerEdgeColor',[1 1 1])
+        grid on
+        set(gca,'Position', [0.1 0.1 0.8 0.8]);
+        hold on
+        if strcmp(print_type, "snapshots")
+            dx = 1.2;
+            dy = 2;
+            text(interp_points(i,1)+dx, interp_points(i,2)+dy,num2str(i))
+        end
+    end
+    hold off
+    set(gca,'Position', [0.1 0.1 0.8 0.8]);
+    set(gca,'color','w');
+    set(gcf,'color','w');
+    set(gca, 'XColor', [0.15 0.15 0.15], 'YColor', [0.15 0.15 0.15])
+    axis([0 resolution 0 resolution])
+    xlabel('x')
+    ylabel('y')
+    drawnow
+    
+    
+    if enable_prints && strcmp(print_type, "snapshots")
+        set(fig_t,'PaperPositionMode','auto')
+        set(fig_t, 'Position', [0 0 width height])
+        set(fig_t, 'visible', 'off')
+        for type = print_types
+            set(fig_t, 'Position', [0 0 width height])
+            filename = snapshot_filename;
+            t_idx = find(time_steps == t);
+            filename = filename + "-t-"+t_idx+"-of-"+length(time_steps);
+            print(fig_t, filename+type{1}{2}, type{1}{1}, '-r0');
+        end
+        set(fig_t, 'visible', 'on')
+    end
+    
+    if enable_prints && strcmp(print_type, "gif")
+        % Write to gif
+        frame = getframe(fig_t);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if k == 1
+            imwrite(imind,cm,gif_filename,'gif', 'Loopcount', inf, 'DelayTime', 1/framerate); 
+        else 
+            imwrite(imind,cm,gif_filename,'gif','WriteMode','append', 'DelayTime', 1/framerate);
+        end
+        if mod(k,10) == 0
+            disp([num2str(round(100 * k / length(time_steps))), '%...'])
+        end
+
+        k = k+1;
+    end
+end
+if enable_prints && strcmp(print_type, "gif")
+    disp("Finished producing gif animation.")
+end
+
+
+%% Distribution flow 2d animation 
+
+
+close all
+clc
+format long
+
+
+enable_prints = false;
+sinkhorn_iterations = 10000;
+sinkhorn_eps = 0.01;
+sigma = 10.0;
+preprocess_sigma = 5.0;
+filter_size = 255;
+enable_entropic_sharpening = true;
+print_type = "snapshots" % snapshots or gif
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+pcBColor = [0.2 0.5 1.0];
+pcFColor = [0.8 0.2 1.0];
+maxMarkerSize = 120;
+minMarkerSize = 5;
+snapshot_time_steps = linspace(0,1,6);
+gif_time_steps = [linspace(0,0,20) linspace(0,1,60) linspace(1,1,20) linspace(1,0,60)];
+framerate = 60;
+gif_filename = "animations/particle-distribution-sim-2d-fps-"+framerate+"-resolution-"+resolution+"-n-"+n+".gif";
+snapshot_filename = "prints/particle-distribution-sim-2d-resolution-"+resolution+"-n-"+n;
+
+
+A_f = filt(A);
+A_f = A_f ./ sum(A_f(:));
+
+B_f = filt(B);
+B_f = B_f ./ sum(B_f(:));
+
+[wd,v,w] = Sinkhorn(A_f,B_f);
+disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+A_targets = [];
+Bs = B;
+for i = 1:n
+    p = zeros(size(v));
+    p(A_ones(i,1), A_ones(i,2)) = 1;
+    margA = SinkhornEvalL(v,w,p);
+    margAB = margA .* Bs;
+    
+    [x,y] = ind2sub(size(margAB),find(margAB == max(margAB(:))));
+    Bs(x,y) = 0;
+    A_targets = [A_targets; x y];
+end
+
+if enable_prints && strcmp(print_type, "gif")
+    disp("---------------------------------")
+    disp("Producing gif...")
+end
+
+k = 1;
+fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+set(gca,'Position', [0.1 0.1 0.8 0.8]);
+if strcmp(print_type, "snapshots")
+    time_steps = snapshot_time_steps;
+elseif strcmp(print_type, "gif")
+    time_steps = gif_time_steps;
+end
+for t = time_steps
+    img = WassersteinBarycenterGeneralized({A_f, B_f}, [1-t t], 0.99);
+    imagesc(img');
+    set(gca,'Position', [0.1 0.1 0.8 0.8]);
+    set(gca, 'YDir', 'normal');
+    hold on
+    
+    AB_t = zeros(resolution, resolution, resolution);
+    interp_points = A_ones + (A_targets - A_ones)*t;
+    
+    for i = 1:n
+        scatter(interp_points(i,1), interp_points(i,2),35,'MarkerFaceColor',[0.8 0.2 1.0], 'MarkerEdgeColor',[0.8 0.2 1.0])
+        grid on
+        set(gca,'Position', [0.1 0.1 0.8 0.8]);
+        hold on
+        if strcmp(print_type, "snapshots")
+            dx = 1.2;
+            dy = 2;
+            text(interp_points(i,1)+dx, interp_points(i,2)+dy,num2str(i))
+        end
+    end
+    hold off
+    set(gca,'Position', [0.1 0.1 0.8 0.8]);
+    set(gca,'color','w');
+    set(gcf,'color','w');
+    set(gca, 'XColor', [0.15 0.15 0.15], 'YColor', [0.15 0.15 0.15])
+    axis([0 resolution 0 resolution])
+    xlabel('x')
+    ylabel('y')
+    drawnow
+    
+    drawnow
+    
+    
+    if enable_prints && strcmp(print_type, "snapshots")
+        set(fig_t,'PaperPositionMode','auto')
+        set(fig_t, 'Position', [0 0 width height])
+        set(fig_t, 'visible', 'off')
+        for type = print_types
+            set(fig_t, 'Position', [0 0 width height])
+            filename = snapshot_filename;
+            t_idx = find(time_steps == t);
+            filename = filename + "-t-"+t_idx+"-of-"+length(time_steps);
+            print(fig_t, filename+type{1}{2}, type{1}{1}, '-r0');
+        end
+        set(fig_t, 'visible', 'on')
+    end
+    
+    if enable_prints && strcmp(print_type, "gif")
+        % Write to gif
+        frame = getframe(fig_t);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        % Write to the GIF File 
+        if k == 1
+            imwrite(imind,cm,gif_filename,'gif', 'Loopcount', inf, 'DelayTime', 1/framerate); 
+        else 
+            imwrite(imind,cm,gif_filename,'gif','WriteMode','append', 'DelayTime', 1/framerate);
+        end
+        if mod(k,10) == 0
+            disp([num2str(round(100 * k / length(time_steps))), '%...'])
+        end
+
+        k = k+1;
+    end
+end
+if enable_prints && strcmp(print_type, "gif")
+    disp("Finished producing gif animation.")
+end
+
+
+%% Monte-Carlo sampled particle flow 2d
+close all
+clc
+format long
+
+enable_prints = true;
+sinkhorn_iterations = 10000;
+sinkhorn_eps = 0.01;
+sigma = 10.0;
+preprocess_sigma = 5.0;
+filter_size = 255;
+enable_entropic_sharpening = true;
+show_barycenters = false;
+show_heatmap = false;
+show_points = false;
+vis_var = 5;
+contour_levels = 5;
+m = 50; % number of particles in each point
+print_type = "gif" % snapshots or gif
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+pcBColor = [0.2 0.5 1.0];
+pcFColor = [0.8 0.2 1.0];
+axis_offset = [0 0 1 1];%[0.1 0.1 0.8 0.8];
+maxMarkerSize = 120;
+minMarkerSize = 5;
+snapshot_time_steps = linspace(0,1,6);
+gif_time_steps = [linspace(0,0,30) linspace(0,1,60) linspace(1,1,30) linspace(1,0,60)];
+framerate = 60;
+gif_filename = "animations/particle-stochastic-sim-2d-fps-"+framerate+"-resolution-"+resolution+"-n-"+n;
+snapshot_filename = "prints/particle-stochastic-sim-2d-resolution-"+resolution+"-n-"+n;
+if ~show_points
+    gif_filename = gif_filename + "-no-points";
+    snapshot_filename = snapshot_filename + "-no-points";
+end
+
+
+A_f = filt(A);
+A_f = A_f ./ sum(A_f(:));
+
+B_f = filt(B);
+B_f = B_f ./ sum(B_f(:));
+
+[wd,v,w] = Sinkhorn(A_f,B_f);
+disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+A_targets = [];
+A_target_counts = zeros(resolution, resolution);
+Bs = B;
+for i = 1:n
+    p = zeros(size(v));
+    p(A_ones(i,1), A_ones(i,2)) = 1;
+    margA = SinkhornEvalL(v,w,p);
+%     margB = SinkhornEvalR(v,w,p);
+    margAB = margA .* Bs;
+    
+    A_targets_row = [];
+    for j = 1:m
+        [x,y] = ind2sub(size(margAB),samplePD(margAB(:)/sum(margAB(:))));
+%         [x,y] = ind2sub(size(margAB),find(margAB == max(margAB(:))));
+        A_targets_row = [A_targets_row x y];
+        A_target_counts(x,y) = A_target_counts(x,y) + 1;
+    end
+    A_targets = [A_targets; A_targets_row];
+end
+
+if enable_prints && strcmp(print_type, "gif")
+    disp("---------------------------------")
+    disp("Producing gif...")
+end
+
+k = 1;
+fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+set(gca,'Position', axis_offset);
+if strcmp(print_type, "snapshots")
+    time_steps = snapshot_time_steps;
+elseif strcmp(print_type, "gif")
+    time_steps = gif_time_steps;
+end
+for t = time_steps
+    
+    AB_t = zeros(resolution, resolution);
+    for i = 1:n
+        for j = 1:m
+            interp_point = round(A_ones(i,:) + (A_targets(i,2*j-1:2*j) - A_ones(i,:))*t);
+            added_value = 1 / (m-m*t+t*A_target_counts(A_targets(i,2*j-1), A_targets(i,2*j)));
+            AB_t(interp_point(1), interp_point(2)) = AB_t(interp_point(1), interp_point(2)) + added_value;
+        end
+    end
+    
+    AB_t_f = imgaussfilt(AB_t, vis_var, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+    AB_t_f = AB_t_f / sum(AB_t_f(:));
+    
+    if show_heatmap
+        imagesc(AB_t_f')
+        set(gca,'Position', axis_offset);
+        hold on
+    elseif show_barycenters
+        img = WassersteinBarycenterGeneralized({A_f, B_f}, [1-t t], 0.99);
+        imagesc(img');
+        set(gca,'Position', axis_offset);
+        hold on
+    end
+    
+    if t == 0
+        lList = linspace(min(AB_t_f(:)),max(AB_t_f(:)),contour_levels+1);
+        lList = lList(2:end);
+    end
+    
+    [C, h] = contour(AB_t_f', 'LevelList', lList);
+    if show_barycenters || show_heatmap
+        h.LineColor = [0.8 0.2 1];
+    end
+    hold on
+    set(gca,'Position', axis_offset);
+    
+    if t == 0 && show_points
+        scatter(A_ones(:,1), A_ones(:,2),35,'MarkerFaceColor',[0.8 0.2 1.0], 'MarkerEdgeColor',[0.8 0.2 1.0])
+        set(gca,'Position', axis_offset);
+    elseif t == 1 && show_points
+        scatter(B_ones(:,1), B_ones(:,2),35,'MarkerFaceColor',[0.8 0.2 1.0], 'MarkerEdgeColor',[0.8 0.2 1.0])
+        set(gca,'Position', axis_offset);
+    end
+    
+    hold off
+    set(gca, 'YDir', 'normal');
+    set(gca,'Position', axis_offset);
+    set(gca,'color','w');
+    set(gcf,'color','w');
+    set(gca, 'XColor', [0.15 0.15 0.15], 'YColor', [0.15 0.15 0.15])
+    axis([1 resolution 1 resolution])
+    xlabel('x')
+    ylabel('y')
+    set(gca,'visible','off')
+    drawnow
+    
+    
+    if enable_prints && strcmp(print_type, "snapshots")
+        set(fig_t,'PaperPositionMode','auto')
+        set(fig_t, 'Position', [0 0 width height])
+        set(fig_t, 'visible', 'off')
+        for type = print_types
+            set(fig_t, 'Position', [0 0 width height])
+            filename = snapshot_filename;
+            if show_heatmap
+                filename = filename + "-heatmap";
+            elseif show_barycenters
+                filename = filename + "-barycenters";
+            end
+            t_idx = find(time_steps == t);
+            filename = filename + "-t-"+t_idx+"-of-"+length(time_steps);
+            print(fig_t, filename+type{1}{2}, type{1}{1}, '-r0');
+        end
+        set(fig_t, 'visible', 'on')
+    end
+    
+    if enable_prints && strcmp(print_type, "gif")
+        % Write to gif
+        frame = getframe(fig_t);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        
+        filename = gif_filename;
+        if show_heatmap
+            filename = filename + "-heatmap";
+        elseif show_barycenters
+            filename = filename + "-barycenters";
+        end
+        filename = filename + ".gif";
+        
+        % Write to the GIF File 
+        if k == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/framerate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/framerate);
+        end
+        if mod(k,10) == 0
+            disp([num2str(round(100 * k / length(time_steps))), '%...'])
+        end
+
+        k = k+1;
+    end
+end
+if enable_prints && strcmp(print_type, "gif")
+    disp("Finished producing gif animation.")
+end
+
+
+%% 3d Stochastically sampled interpolation
+close all
+clc
+format long
+
+enable_prints = true;
+sinkhorn_iterations = 10000;
+sinkhorn_eps = 0.01;
+sigma = 10.0;
+preprocess_sigma = 1.0;
+filter_size = 255;
+enable_entropic_sharpening = false;
+file_resolution = 64;
+shift = 0;
+resolution = file_resolution + 2*shift;
+vis_var = 0.0;
+m = 50; % number of particles in each point
+print_type = "snapshots" % snapshots or gif
+method = "barycenters" % stochastic or barycenters
+renderType = "Isosurface";
+entropic_factor = 0.99;
+width = 600;
+height = 600;
+color = [linspace(0.8,0.8,256)' linspace(0.2,0.2,256)' linspace(1,1,256)'];
+bgcolor = [1 1 1];
+pcBColor = [0.2 0.5 1.0];
+pcFColor = [0.8 0.2 1.0];
+axis_offset = [0 0 1 1];%[0.1 0.1 0.8 0.8];
+maxMarkerSize = 120;
+minMarkerSize = 5;
+snapshot_time_steps = linspace(0,1,6);
+gif_time_steps = [linspace(0,0,20) linspace(0,1,40) linspace(1,1,20) linspace(1,0,40)];
+framerate = 60;
+gif_filename = "animations/particle-stochastic-sim-3d-bunny-duck-fps-"+framerate+"-resolution-"+resolution+"-"+method;
+snapshot_filename = "prints/particle-stochastic-sim-3d-bunny-duck-resolution-"+resolution+"-"+method;
+
+if vis_var == 0 && strcmp(method, "stochastic")
+    gif_filename = gif_filename + "-voxels";
+    snapshot_filename = snapshot_filename + "-voxels";
+end
+
+if strcmp(method, "barycenters") && ~enable_entropic_sharpening
+    gif_filename = gif_filename + "-no-entropic-sharpening";
+    snapshot_filename = snapshot_filename + "-no-entropic-sharpening";
+end
+
+
+CamTarget = [0 0.15 0.35];
+CamVA = 30;
+CamUpVector = [0 1 0];
+CamPosition = [2 1.5 2.5];
+CamPosition = CamPosition/norm(CamPosition) * 1.5;
+
+A_signed_distance_field = importdata("../data/objects/bunny_"+file_resolution+"_signed_distance.txt");
+B_signed_distance_field = importdata("../data/objects/duck_"+file_resolution+"_signed_distance.txt");
+C_signed_distance_field = importdata("../data/objects/teapot_"+file_resolution+"_signed_distance.txt");
+
+A = [];
+orig_A = zeros([resolution resolution resolution]);
+for idx=1:size(A_signed_distance_field,1)
+    p = A_signed_distance_field(idx,:);
+    orig_A(p(3)+shift, p(1)+shift, p(2)+shift) = exp(-p(4)); % double(p(4) <= 0);
+end
+orig_A = flip(orig_A,3);
+A = double(and(orig_A > 0.7, orig_A <= 4.0));
+
+B = [];
+orig_B = zeros([resolution resolution resolution]);
+for idx=1:size(A_signed_distance_field,1)
+    p = B_signed_distance_field(idx,:);
+    orig_B(p(3)+shift, p(2)+shift, p(1)+shift) = exp(-p(4)); % double(p(4) <= 0);
+end
+orig_B = flip(orig_B,3);
+B = double(and(orig_B > 0.8, orig_B <= 2.0));
+
+% A = orig_A;
+% isoValue = 1;
+% x = linspace(0, 1, resolution);
+% [X,Y,Z] = meshgrid(x,x,x);
+% 
+% fig = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+% xlabel("x")
+% ylabel("y")
+% zlabel("z")
+% set(fig,'Color',bgcolor);
+% set(gca,'XColor',bgcolor,'YColor',bgcolor,'ZColor',bgcolor,'TickDir','out')
+% p = patch(isosurface(X,Y,Z,A,isoValue));
+% p.FaceColor = [0.8 0.2 1];
+% p.EdgeColor = 'none';
+% axis image
+% campos(CamPosition)
+% camtarget(CamTarget)
+% camup(CamUpVector)
+% camva(CamVA)
+% camlight('headlight')
+% lighting gouraud
+% material dull
+
+
+
+
+[x,y,z] = ind2sub(size(A), find(A > 0));
+A_points = [x y z];
+
+[x,y,z] = ind2sub(size(B), find(B > 0));
+B_points = [x y z];
+
+
+A_f = filt3(A);
+A_f = A_f ./ sum(A_f(:));
+B_f = filt3(B);
+B_f = B_f ./ sum(B_f(:));
+
+% 
+% figure
+% volshow(A_f,...
+%             'Renderer', "Isosurface",...
+%             'IsosurfaceColor', pcFColor,...
+%             'Isovalue', 0.3,...
+%             'Colormap', color,...
+%             'BackgroundColor', bgcolor,...
+%             'CameraTarget',CamTarget,...
+%             'CameraViewAngle',CamVA,...
+%             'CameraUpVector',CamUpVector,...
+%             'CameraPosition',CamPosition);
+% figure
+% volshow(B_f,...
+%             'Renderer', "Isosurface",...
+%             'IsosurfaceColor', pcFColor,...
+%             'Isovalue', 0.3,...
+%             'Colormap', color,...
+%             'BackgroundColor', bgcolor,...
+%             'CameraTarget',CamTarget,...
+%             'CameraViewAngle',CamVA,...
+%             'CameraUpVector',CamUpVector,...
+%             'CameraPosition',CamPosition);
+% 
+% 
+
+
+if strcmp(method, "stochastic")
+    [wd,v,w] = Sinkhorn(A_f,B_f);
+    disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
+
+
+    k=0;
+    n = length(A_points);
+    A_targets = zeros(n, m, 3);
+    A_target_counts = zeros(resolution, resolution, resolution);
+    Bs = B;
+    disp("Simulating "+num2str(n*m)+" stochastic particles...")
+    for i = 1:n
+        p = zeros(size(v));
+        p(A_points(i,1), A_points(i,2), A_points(i,3)) = 1;
+        margA = SinkhornEvalL(v,w,p);
+        margAB = margA .* Bs;
+
+        if sum(margAB(:)) > 0
+            for j = 1:m
+                sample_idx = samplePD(margAB(:)/sum(margAB(:)));
+                [x,y,z] = ind2sub(size(margAB),sample_idx);
+                A_targets(i,j,:) = [x y z];
+                A_target_counts(x,y,z) = A_target_counts(x,y,z) + 1;
+            end
+        else
+            A_targets(i,:,:) = repmat([A_points(i,1), A_points(i,2), A_points(i,3)], m, 1);
+        end
+        if mod(round(i/n*100), 10) == 0 && round(i/n*100) > k
+            k = round(i/n*100);
+            disp("  "+round(i/n*100)+"% done...")
+        end
+    end
+end
+
+if enable_prints && strcmp(print_type, "gif")
+    disp("---------------------------------")
+    disp("Producing gif...")
+end
+
+if strcmp(print_type, "gif")
+    time_steps = gif_time_steps;
+elseif strcmp(print_type, "snapshots")
+    time_steps = snapshot_time_steps;
+end
+
+k = 1;
+fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+for t = time_steps
+    if strcmp(method, "stochastic")
+        AB_t = zeros(resolution,resolution,resolution);
+
+        for i = 1:n
+            for j = 1:m
+                origin = squeeze(A_points(i,:));
+                target = squeeze(A_targets(i,j,:))';
+                interp_point = round(origin + (target - origin)*t);
+                
+                if vis_var > 0
+                    AB_t(interp_point(1), interp_point(2), interp_point(3)) + 1 /(m*(1-t)+t*A_target_counts(target(1), target(2), target(3)));
+                else
+                    AB_t(interp_point(1), interp_point(2), interp_point(3)) = 1;
+                end
+            end
+        end
+        
+        if vis_var > 0
+            AB_t = imgaussfilt3(AB_t, vis_var, 'FilterSize', filter_size, 'Padding', filter_padding_value);
+        end
+        
+        volshow(AB_t,...
+            'Renderer', renderType,...
+            'IsosurfaceColor', pcFColor,...
+            'Isovalue', 0.3,...
+            'Colormap', color,...
+            'BackgroundColor', bgcolor,...
+            'CameraTarget',CamTarget,...
+            'CameraViewAngle',CamVA,...
+            'CameraUpVector',CamUpVector,...
+            'CameraPosition',CamPosition);
+        drawnow
+    elseif strcmp(method, "barycenters")
+        barycenter = WassersteinBarycenterGeneralized({A_f, B_f}, [1-t, t], entropic_factor);
+        volshow(barycenter,...
+            'Renderer', "Isosurface",...
+            'IsosurfaceColor', pcFColor,...
+            'Isovalue', 0.3,...
+            'Colormap', color,...
+            'BackgroundColor', bgcolor,...
+            'CameraTarget',CamTarget,...
+            'CameraViewAngle',CamVA,...
+            'CameraUpVector',CamUpVector,...
+            'CameraPosition',CamPosition);
+        drawnow
+    end
+    
+    
+
+    
+    if enable_prints && strcmp(print_type, "snapshots")
+        set(fig_t,'PaperPositionMode','auto')
+        set(fig_t, 'Position', [0 0 width height])
+        set(fig_t, 'visible', 'off')
+        for type = print_types
+            set(fig_t, 'Position', [0 0 width height])
+            filename = snapshot_filename;
+            t_idx = find(time_steps == t);
+            filename = filename + "-t-"+t_idx+"-of-"+length(time_steps);
+            print(fig_t, filename+type{1}{2}, type{1}{1}, '-r0');
+        end
+        set(fig_t, 'visible', 'on')
+    end
+    
+    if enable_prints && strcmp(print_type, "gif")
+        % Write to gif
+        frame = getframe(fig_t);
+        [im,map] = frame2im(frame);
+
+        [imind,cm] = rgb2ind(im,256); 
+        
+        filename = gif_filename;
+        filename = filename + ".gif";
+        
+        % Write to the GIF File 
+        if k == 1
+            imwrite(imind,cm,filename,'gif', 'Loopcount', inf, 'DelayTime', 1/framerate); 
+        else 
+            imwrite(imind,cm,filename,'gif','WriteMode','append', 'DelayTime', 1/framerate);
+        end
+        if mod(k,10) == 0
+            disp([num2str(round(100 * k / length(time_steps))), '%...'])
+        end
+
+        k = k+1;
+    end
+end
+if enable_prints && strcmp(print_type, "gif")
+    disp("Finished producing gif animation.")
+end
+
 
 
 
