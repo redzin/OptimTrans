@@ -4645,9 +4645,9 @@ file_resolution = 64;
 shift = 0;
 resolution = file_resolution + 2*shift;
 vis_var = 0.0;
-m = 50; % number of particles in each point
-print_type = "snapshots" % snapshots or gif
-method = "barycenters" % stochastic or barycenters
+m = 25; % number of particles in each point
+print_type = "gif" % snapshots or gif
+method = "stochastic-shifted" % stochastic or barycenters or stochastic-shifted
 renderType = "Isosurface";
 entropic_factor = 0.99;
 width = 600;
@@ -4769,7 +4769,7 @@ B_f = B_f ./ sum(B_f(:));
 % 
 
 
-if strcmp(method, "stochastic")
+if strcmp(method, "stochastic") || strcmp(method, "stochastic-shifted")
     [wd,v,w] = Sinkhorn(A_f,B_f);
     disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
 
@@ -4817,24 +4817,32 @@ end
 k = 1;
 fig_t = figure('Position', [500 500 width height], 'Color', [1 1 1]);
 for t = time_steps
-    if strcmp(method, "stochastic")
+    if strcmp(method, "stochastic") || strcmp(method, "stochastic-shifted")
         AB_t = zeros(resolution,resolution,resolution);
-
+        
+        
         for i = 1:n
             for j = 1:m
                 origin = squeeze(A_points(i,:));
                 target = squeeze(A_targets(i,j,:))';
-                interp_point = round(origin + (target - origin)*t);
+                p = origin + (target - origin)*t;
                 
-                if vis_var > 0
-                    AB_t(interp_point(1), interp_point(2), interp_point(3)) + 1 /(m*(1-t)+t*A_target_counts(target(1), target(2), target(3)));
+                
+                if strcmp(method, "stochastic-shifted")
+                kernel = shiftedGaussian(p, 1.0, 11, resolution);
+                AB_t = AB_t + kernel ./ (m*(1-t)+t*A_target_counts(target(1), target(2), target(3)));
                 else
-                    AB_t(interp_point(1), interp_point(2), interp_point(3)) = 1;
+                    interp_point = round(p);
+                    if vis_var > 0
+                        AB_t(interp_point(1), interp_point(2), interp_point(3)) = AB_t(interp_point(1), interp_point(2), interp_point(3)) + 1 /(m*(1-t)+t*A_target_counts(target(1), target(2), target(3)));
+                    else
+                        AB_t(interp_point(1), interp_point(2), interp_point(3)) = 1;
+                    end
                 end
             end
         end
         
-        if vis_var > 0
+        if vis_var > 0 && strcmp(method, "stochastic")
             AB_t = imgaussfilt3(AB_t, vis_var, 'FilterSize', filter_size, 'Padding', filter_padding_value);
         end
         
@@ -4907,6 +4915,131 @@ end
 if enable_prints && strcmp(print_type, "gif")
     disp("Finished producing gif animation.")
 end
+
+
+
+%% Grid jaggedness illustration
+close all
+clc
+format long
+
+X = zeros(8,8);
+
+X(4:5,4:5) = 1;
+
+
+figure
+imagesc(X)
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+
+
+Y = imgaussfilt(X, 1.0, 'FilterSize', 7, 'Padding', 0);
+figure
+imagesc(Y)
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+
+
+X(4,4) = 0
+figure
+imagesc(X)
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+
+
+Y = imgaussfilt(X, 1.0, 'FilterSize', 7, 'Padding', 0);
+figure
+imagesc(Y)
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+
+
+
+
+
+%%  Make Gaussian at given point
+
+clc
+close all
+format long
+
+enable_prints = true;
+width = 600;
+height = 600;
+resolution = 8;
+kernel_size = 5;
+p = [3.7,3.7,1];
+s = 1.0;
+filename1 = "prints/particle-sim-jaggedness-illustration-1"
+filename2 = "prints/particle-sim-jaggedness-illustration-2"
+
+kernel = shiftedGaussian(p, s, kernel_size, resolution);
+
+fig1 = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+imagesc(kernel(:,:,1))
+hold on
+set(gcf, 'Position', [500 500 width height])
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+scatter(p(1), p(2), [], [0.8 0.2 1], 'filled')
+
+
+
+
+X = zeros(8,8);
+X(4,4) = 1;
+Y = imgaussfilt(X, 1.0, 'FilterSize', 7, 'Padding', 0);
+
+fig2 = figure('Position', [500 500 width height], 'Color', [1 1 1]);
+imagesc(Y)
+hold on
+set(gcf, 'Position', [500 500 width height])
+set(gca, 'YDir', 'normal');
+set(gca, 'Visible', 'off');
+set(gca, 'Position', [0 0 1 1]);
+scatter(p(1), p(2), [], [0.8 0.2 1], 'filled')
+
+
+if enable_prints
+    set(fig1,'PaperPositionMode','auto')
+    set(fig1, 'Position', [0 0 width height])
+    set(fig1, 'visible', 'off')
+    set(fig2,'PaperPositionMode','auto')
+    set(fig2, 'Position', [0 0 width height])
+    set(fig2, 'visible', 'off')
+    for type = print_types
+        set(fig1, 'Position', [0 0 width height])
+        print(fig1, filename1+type{1}{2}, type{1}{1}, '-r0');
+        set(fig2, 'Position', [0 0 width height])
+        print(fig2, filename2+type{1}{2}, type{1}{1}, '-r0');
+    end
+    set(fig1, 'visible', 'on')
+    set(fig2, 'visible', 'on')
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
