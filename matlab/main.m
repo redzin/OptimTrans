@@ -1705,7 +1705,7 @@ for shape = shapes
     end
 end
 
-%% Compute Wasserstein distance between 2 cochlears
+%% Compute Wasserstein distance between 2 cochleas
 format long g
 close all
 clc
@@ -4773,7 +4773,6 @@ if strcmp(method, "stochastic") || strcmp(method, "stochastic-shifted")
     [wd,v,w] = Sinkhorn(A_f,B_f);
     disp("Marginal sum: "+sum(SinkhornEvalL(v,w,ones(size(v))), 'all') + ", "+sum(SinkhornEvalR(v,w,ones(size(v))), 'all'))
 
-
     k=0;
     n = length(A_points);
     A_targets = zeros(n, m, 3);
@@ -4968,7 +4967,7 @@ clc
 close all
 format long
 
-enable_prints = true;
+enable_prints = false;
 width = 600;
 height = 600;
 resolution = 8;
