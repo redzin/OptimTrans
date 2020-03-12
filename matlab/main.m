@@ -5023,12 +5023,73 @@ if enable_prints
 end
 
 
+%% Two distributions compare, etc.
+
+clc
+close all
+
+width = 600;
+height = 400;
+enable_prints = true;
+filename1 = "gaussian_1";
+filename2 = "gaussian_2";
+filename3 = "gaussian_3";
+filename4 = "gaussian_4";
+
+x = linspace (0,1,1000);
+y = @(s,mu) 1/(s*sqrt(2*pi)) * exp(-(x-mu).^2 / (2 * s.^2));
+
+
+fig1 = figure('Position', [500 500 width height]);
+hold on
+plot(x,y(0.025, 0.25))
+axis([0 1 0 16])
+
+fig2 = figure('Position', [500 500 width height]);
+hold on
+plot(x,y(0.025, 0.75))
+axis([0 1 0 16])
+
+fig3 = figure('Position', [500 500 width height]);
+hold on
+plot(x,(y(0.025, 0.75)+y(0.025, 0.25))/2)
+axis([0 1 0 16])
+
+fig4 = figure('Position', [500 500 width height]);
+hold on
+plot(x,y(0.025, 0.5))
+axis([0 1 0 16])
 
 
 
-
-
-
+if enable_prints
+    set(fig1,'PaperPositionMode','auto')
+    set(fig1, 'Position', [0 0 width height])
+    set(fig1, 'visible', 'off')
+    set(fig2,'PaperPositionMode','auto')
+    set(fig2, 'Position', [0 0 width height])
+    set(fig2, 'visible', 'off')
+    set(fig3,'PaperPositionMode','auto')
+    set(fig3, 'Position', [0 0 width height])
+    set(fig3, 'visible', 'off')
+    set(fig4,'PaperPositionMode','auto')
+    set(fig4, 'Position', [0 0 width height])
+    set(fig4, 'visible', 'off')
+    for type = print_types
+        set(fig1, 'Position', [0 0 width height])
+        print(fig1, filename1+type{1}{2}, type{1}{1}, '-r0');
+        set(fig2, 'Position', [0 0 width height])
+        print(fig2, filename2+type{1}{2}, type{1}{1}, '-r0');
+        set(fig3, 'Position', [0 0 width height])
+        print(fig3, filename3+type{1}{2}, type{1}{1}, '-r0');
+        set(fig4, 'Position', [0 0 width height])
+        print(fig4, filename4+type{1}{2}, type{1}{1}, '-r0');
+    end
+    set(fig1, 'visible', 'on')
+    set(fig2, 'visible', 'on')
+    set(fig3, 'visible', 'on')
+    set(fig4, 'visible', 'on')
+end
 
 
 
